@@ -1,0 +1,8 @@
+{
+  "id": "media-audiobooks",
+  "name": "Audiobook Manager",
+  "version": "0.1.0",
+  "description": "Audiobook library manager scaffold",
+  "roles": ["media", "audiobooks"],
+  "capabilities": ["media.audiobooks", "audiobooks", "settings"]
+}
