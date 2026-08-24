@@ -100,7 +100,7 @@ func TestStorePersistsAcrossOpen(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s2.Close()
+	defer func() { _ = s2.Close() }()
 	authors, err := s2.ListAuthors("jemisin")
 	if err != nil {
 		t.Fatal(err)
