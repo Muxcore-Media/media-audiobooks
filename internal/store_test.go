@@ -54,6 +54,28 @@ func TestStoreAuthorAudiobookRoundTrip(t *testing.T) {
 	}
 }
 
+func TestStoreListMissingAudiobooks(t *testing.T) {
+	s, _ := openTempStore(t)
+	au, err := s.AddAuthor(internal.Author{Name: "Patrick Rothfuss", Monitored: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	missing, err := s.AddAudiobook(internal.Audiobook{AuthorID: au.ID, Title: "The Name of the Wind", Year: 2007, Monitored: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	items, total, err := s.ListMissingAudiobooks(1, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 1 || len(items) != 1 {
+		t.Fatalf("total=%d items=%d", total, len(items))
+	}
+	if items[0].AudiobookID != missing.ID || items[0].AuthorName != "Patrick Rothfuss" {
+		t.Fatalf("%+v", items[0])
+	}
+}
+
 func TestStorePersistsAcrossOpen(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "audiobooks.db")

@@ -274,6 +274,58 @@ func (s *Store) ListAudiobookFiles(audiobookID string) ([]*AudiobookFile, error)
 	return out, rows.Err()
 }
 
+// MissingAudiobook is a monitored audiobook with no files on disk.
+type MissingAudiobook struct {
+	AudiobookID string
+	AuthorID    string
+	Title       string
+	AuthorName  string
+	Year        int32
+}
+
+// ListMissingAudiobooks returns monitored audiobooks that have no audiobook_files rows.
+func (s *Store) ListMissingAudiobooks(page, pageSize int) ([]MissingAudiobook, int, error) {
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 || pageSize > 200 {
+		pageSize = 100
+	}
+	offset := (page - 1) * pageSize
+	var total int
+	if err := s.db.QueryRow(`
+		SELECT COUNT(*)
+		FROM audiobooks ab
+		JOIN authors a ON a.id = ab.author_id
+		WHERE ab.monitored = 1 AND a.monitored = 1
+		  AND NOT EXISTS (SELECT 1 FROM audiobook_files f WHERE f.audiobook_id = ab.id)
+	`).Scan(&total); err != nil {
+		return nil, 0, fmt.Errorf("count missing audiobooks: %w", err)
+	}
+	rows, err := s.db.Query(`
+		SELECT ab.id, ab.author_id, ab.title, ab.year, a.name
+		FROM audiobooks ab
+		JOIN authors a ON a.id = ab.author_id
+		WHERE ab.monitored = 1 AND a.monitored = 1
+		  AND NOT EXISTS (SELECT 1 FROM audiobook_files f WHERE f.audiobook_id = ab.id)
+		ORDER BY a.name, ab.title
+		LIMIT ? OFFSET ?
+	`, pageSize, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("list missing audiobooks: %w", err)
+	}
+	defer rows.Close()
+	out := make([]MissingAudiobook, 0)
+	for rows.Next() {
+		var item MissingAudiobook
+		if err := rows.Scan(&item.AudiobookID, &item.AuthorID, &item.Title, &item.Year, &item.AuthorName); err != nil {
+			return nil, 0, err
+		}
+		out = append(out, item)
+	}
+	return out, total, rows.Err()
+}
+
 func (s *Store) findAuthorByName(name string) (*Author, error) {
 	row := s.db.QueryRow(`
 		SELECT id, name, monitored, path FROM authors
