@@ -38,7 +38,7 @@ func TestHTTPListAuthorsFixtures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer hr.Body.Close()
+	defer func() { _ = hr.Body.Close() }()
 	if hr.StatusCode != http.StatusOK {
 		b, _ := io.ReadAll(hr.Body)
 		t.Fatalf("status %d: %s", hr.StatusCode, b)
@@ -59,7 +59,7 @@ func TestHTTPListAuthorsFixtures(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer missingResp.Body.Close()
+	defer func() { _ = missingResp.Body.Close() }()
 	if missingResp.StatusCode != http.StatusOK {
 		t.Fatalf("missing status %d", missingResp.StatusCode)
 	}

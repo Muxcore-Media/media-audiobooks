@@ -99,10 +99,7 @@ func (m *Module) handleListMissingHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	out := make([]missingAudiobookJSON, 0, len(items))
 	for _, it := range items {
-		out = append(out, missingAudiobookJSON{
-			AudiobookID: it.AudiobookID, AuthorID: it.AuthorID, Title: it.Title,
-			AuthorName: it.AuthorName, Year: it.Year,
-		})
+		out = append(out, missingAudiobookJSON(it))
 	}
 	writeJSON(w, missingAudiobooksResponse{
 		Items: out, Total: total, Page: page, PageSize: pageSize,
@@ -142,9 +139,9 @@ type missingAudiobookJSON struct {
 
 type missingAudiobooksResponse struct {
 	Items    []missingAudiobookJSON `json:"items"`
-	Total    int               `json:"total"`
-	Page     int               `json:"page"`
-	PageSize int               `json:"page_size"`
+	Total    int                    `json:"total"`
+	Page     int                    `json:"page"`
+	PageSize int                    `json:"page_size"`
 }
 
 func toAuthorJSON(a *Author) authorJSON {

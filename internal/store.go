@@ -54,12 +54,12 @@ func OpenStore(path string) (*Store, error) {
 	}
 	db.SetMaxOpenConns(1)
 	if _, err := db.Exec(`PRAGMA journal_mode=WAL`); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, fmt.Errorf("enable WAL: %w", err)
 	}
 	s := &Store{db: db}
 	if err := s.migrate(); err != nil {
-		db.Close()
+		_ = db.Close()
 		return nil, err
 	}
 	return s, nil
@@ -148,7 +148,7 @@ func (s *Store) ListAuthors(query string) ([]*Author, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list authors: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	q := strings.ToLower(strings.TrimSpace(query))
 	out := make([]*Author, 0)
 	for rows.Next() {
@@ -231,7 +231,7 @@ func (s *Store) ListAudiobooks(authorID string) ([]*Audiobook, error) {
 	if err != nil {
 		return nil, fmt.Errorf("list audiobooks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]*Audiobook, 0)
 	for rows.Next() {
 		ab, err := scanAudiobook(rows)
@@ -262,7 +262,7 @@ func (s *Store) ListAudiobookFiles(audiobookID string) ([]*AudiobookFile, error)
 	if err != nil {
 		return nil, fmt.Errorf("list audiobook files: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]*AudiobookFile, 0)
 	for rows.Next() {
 		f, err := scanAudiobookFile(rows)
@@ -314,7 +314,7 @@ func (s *Store) ListMissingAudiobooks(page, pageSize int) ([]MissingAudiobook, i
 	if err != nil {
 		return nil, 0, fmt.Errorf("list missing audiobooks: %w", err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	out := make([]MissingAudiobook, 0)
 	for rows.Next() {
 		var item MissingAudiobook
