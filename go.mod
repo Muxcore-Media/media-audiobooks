@@ -34,3 +34,5 @@ replace github.com/Muxcore-Media/contracts-media => ../contracts-media
 replace github.com/Muxcore-Media/core/pkg/contracts => ../core/pkg/contracts
 
 replace github.com/Muxcore-Media/core/sdk/go/module => ../core/sdk/go/module
+
+replace github.com/Muxcore-Media/core/sdk/go/client => ../core/sdk/go/client
