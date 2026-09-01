@@ -1,6 +1,8 @@
 package internal_test
 
 import (
+	"encoding/json"
+	"net/http"
 	"os"
 	"path/filepath"
 	"testing"
@@ -84,7 +86,7 @@ func TestScanLibraryRootMissing(t *testing.T) {
 
 func TestModuleInitScan(t *testing.T) {
 	data := t.TempDir()
-	lib := filepath.Join(data, "audiobooks")
+	lib := filepath.Join(data, "library")
 	src := filepath.Join("testdata", "library")
 	if err := copyTree(src, lib); err != nil {
 		t.Fatal(err)
@@ -107,6 +109,71 @@ func TestModuleInitScan(t *testing.T) {
 	}
 	if res.FilesImported < 2 {
 		t.Fatalf("%+v", res)
+	}
+}
+
+func TestModuleStartScansLibrary(t *testing.T) {
+	data := t.TempDir()
+	lib := filepath.Join(data, "library")
+	if err := copyTree(filepath.Join("testdata", "library"), lib); err != nil {
+		t.Fatal(err)
+	}
+	m := internal.NewModule(internal.Config{
+		DataDir: data, LibraryDir: lib,
+		GRPCAddr: "127.0.0.1:0", HTTPAddr: "127.0.0.1:0",
+	})
+	if err := m.Init(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Start(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = m.Stop(t.Context()) })
+
+	resp, err := http.Get("http://" + m.HTTPListenAddr() + "/api/authors")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	var authors []map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&authors); err != nil {
+		t.Fatal(err)
+	}
+	if len(authors) < 1 {
+		t.Fatal("expected startup scan to import fixture authors")
+	}
+}
+
+func TestScanLibraryRootPurgesVanishedFiles(t *testing.T) {
+	s, _ := openTempStore(t)
+	root := t.TempDir()
+	bookDir := filepath.Join(root, "Author", "Book")
+	if err := os.MkdirAll(bookDir, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	stub := filepath.Join(bookDir, "part.mp3")
+	if err := os.WriteFile(stub, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.ScanLibraryRoot(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Remove(stub); err != nil {
+		t.Fatal(err)
+	}
+	res, err := s.ScanLibraryRoot(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.FilesRemoved != 1 {
+		t.Fatalf("expected vanished file purge, got %+v", res)
+	}
+	items, total, err := s.ListMissingAudiobooks(1, 50)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if total != 1 || len(items) != 1 {
+		t.Fatalf("missing after purge: total=%d items=%d", total, len(items))
 	}
 }
 

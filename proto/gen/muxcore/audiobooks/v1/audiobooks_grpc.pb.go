@@ -19,26 +19,42 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
-	AudiobookManagementService_AddAuthor_FullMethodName      = "/muxcore.audiobooks.v1.AudiobookManagementService/AddAuthor"
-	AudiobookManagementService_GetAuthor_FullMethodName      = "/muxcore.audiobooks.v1.AudiobookManagementService/GetAuthor"
-	AudiobookManagementService_ListAuthors_FullMethodName    = "/muxcore.audiobooks.v1.AudiobookManagementService/ListAuthors"
-	AudiobookManagementService_RemoveAuthor_FullMethodName   = "/muxcore.audiobooks.v1.AudiobookManagementService/RemoveAuthor"
-	AudiobookManagementService_AddAudiobook_FullMethodName   = "/muxcore.audiobooks.v1.AudiobookManagementService/AddAudiobook"
-	AudiobookManagementService_ListAudiobooks_FullMethodName = "/muxcore.audiobooks.v1.AudiobookManagementService/ListAudiobooks"
+	AudiobookManagementService_AddAuthor_FullMethodName           = "/muxcore.audiobooks.v1.AudiobookManagementService/AddAuthor"
+	AudiobookManagementService_GetAuthor_FullMethodName           = "/muxcore.audiobooks.v1.AudiobookManagementService/GetAuthor"
+	AudiobookManagementService_ListAuthors_FullMethodName         = "/muxcore.audiobooks.v1.AudiobookManagementService/ListAuthors"
+	AudiobookManagementService_UpdateAuthor_FullMethodName        = "/muxcore.audiobooks.v1.AudiobookManagementService/UpdateAuthor"
+	AudiobookManagementService_RemoveAuthor_FullMethodName        = "/muxcore.audiobooks.v1.AudiobookManagementService/RemoveAuthor"
+	AudiobookManagementService_AddAudiobook_FullMethodName        = "/muxcore.audiobooks.v1.AudiobookManagementService/AddAudiobook"
+	AudiobookManagementService_GetAudiobook_FullMethodName        = "/muxcore.audiobooks.v1.AudiobookManagementService/GetAudiobook"
+	AudiobookManagementService_ListAudiobooks_FullMethodName      = "/muxcore.audiobooks.v1.AudiobookManagementService/ListAudiobooks"
+	AudiobookManagementService_UpdateAudiobook_FullMethodName     = "/muxcore.audiobooks.v1.AudiobookManagementService/UpdateAudiobook"
+	AudiobookManagementService_RemoveAudiobook_FullMethodName     = "/muxcore.audiobooks.v1.AudiobookManagementService/RemoveAudiobook"
+	AudiobookManagementService_ScanLibrary_FullMethodName         = "/muxcore.audiobooks.v1.AudiobookManagementService/ScanLibrary"
+	AudiobookManagementService_ListAudiobookFiles_FullMethodName  = "/muxcore.audiobooks.v1.AudiobookManagementService/ListAudiobookFiles"
+	AudiobookManagementService_ListMissing_FullMethodName         = "/muxcore.audiobooks.v1.AudiobookManagementService/ListMissing"
+	AudiobookManagementService_ImportAudiobookFile_FullMethodName = "/muxcore.audiobooks.v1.AudiobookManagementService/ImportAudiobookFile"
 )
 
 // AudiobookManagementServiceClient is the client API for AudiobookManagementService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 //
-// AudiobookManagementService is an audiobook library manager (scaffold).
+// AudiobookManagementService manages an offline audiobook library.
 type AudiobookManagementServiceClient interface {
 	AddAuthor(ctx context.Context, in *AddAuthorRequest, opts ...grpc.CallOption) (*AddAuthorResponse, error)
 	GetAuthor(ctx context.Context, in *GetAuthorRequest, opts ...grpc.CallOption) (*GetAuthorResponse, error)
 	ListAuthors(ctx context.Context, in *ListAuthorsRequest, opts ...grpc.CallOption) (*ListAuthorsResponse, error)
+	UpdateAuthor(ctx context.Context, in *UpdateAuthorRequest, opts ...grpc.CallOption) (*UpdateAuthorResponse, error)
 	RemoveAuthor(ctx context.Context, in *RemoveAuthorRequest, opts ...grpc.CallOption) (*RemoveAuthorResponse, error)
 	AddAudiobook(ctx context.Context, in *AddAudiobookRequest, opts ...grpc.CallOption) (*AddAudiobookResponse, error)
+	GetAudiobook(ctx context.Context, in *GetAudiobookRequest, opts ...grpc.CallOption) (*GetAudiobookResponse, error)
 	ListAudiobooks(ctx context.Context, in *ListAudiobooksRequest, opts ...grpc.CallOption) (*ListAudiobooksResponse, error)
+	UpdateAudiobook(ctx context.Context, in *UpdateAudiobookRequest, opts ...grpc.CallOption) (*UpdateAudiobookResponse, error)
+	RemoveAudiobook(ctx context.Context, in *RemoveAudiobookRequest, opts ...grpc.CallOption) (*RemoveAudiobookResponse, error)
+	ScanLibrary(ctx context.Context, in *ScanLibraryRequest, opts ...grpc.CallOption) (*ScanLibraryResponse, error)
+	ListAudiobookFiles(ctx context.Context, in *ListAudiobookFilesRequest, opts ...grpc.CallOption) (*ListAudiobookFilesResponse, error)
+	ListMissing(ctx context.Context, in *ListMissingRequest, opts ...grpc.CallOption) (*ListMissingResponse, error)
+	ImportAudiobookFile(ctx context.Context, in *ImportAudiobookFileRequest, opts ...grpc.CallOption) (*ImportAudiobookFileResponse, error)
 }
 
 type audiobookManagementServiceClient struct {
@@ -79,6 +95,16 @@ func (c *audiobookManagementServiceClient) ListAuthors(ctx context.Context, in *
 	return out, nil
 }
 
+func (c *audiobookManagementServiceClient) UpdateAuthor(ctx context.Context, in *UpdateAuthorRequest, opts ...grpc.CallOption) (*UpdateAuthorResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateAuthorResponse)
+	err := c.cc.Invoke(ctx, AudiobookManagementService_UpdateAuthor_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *audiobookManagementServiceClient) RemoveAuthor(ctx context.Context, in *RemoveAuthorRequest, opts ...grpc.CallOption) (*RemoveAuthorResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(RemoveAuthorResponse)
@@ -99,6 +125,16 @@ func (c *audiobookManagementServiceClient) AddAudiobook(ctx context.Context, in 
 	return out, nil
 }
 
+func (c *audiobookManagementServiceClient) GetAudiobook(ctx context.Context, in *GetAudiobookRequest, opts ...grpc.CallOption) (*GetAudiobookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetAudiobookResponse)
+	err := c.cc.Invoke(ctx, AudiobookManagementService_GetAudiobook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *audiobookManagementServiceClient) ListAudiobooks(ctx context.Context, in *ListAudiobooksRequest, opts ...grpc.CallOption) (*ListAudiobooksResponse, error) {
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(ListAudiobooksResponse)
@@ -109,18 +145,86 @@ func (c *audiobookManagementServiceClient) ListAudiobooks(ctx context.Context, i
 	return out, nil
 }
 
+func (c *audiobookManagementServiceClient) UpdateAudiobook(ctx context.Context, in *UpdateAudiobookRequest, opts ...grpc.CallOption) (*UpdateAudiobookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(UpdateAudiobookResponse)
+	err := c.cc.Invoke(ctx, AudiobookManagementService_UpdateAudiobook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *audiobookManagementServiceClient) RemoveAudiobook(ctx context.Context, in *RemoveAudiobookRequest, opts ...grpc.CallOption) (*RemoveAudiobookResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(RemoveAudiobookResponse)
+	err := c.cc.Invoke(ctx, AudiobookManagementService_RemoveAudiobook_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *audiobookManagementServiceClient) ScanLibrary(ctx context.Context, in *ScanLibraryRequest, opts ...grpc.CallOption) (*ScanLibraryResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ScanLibraryResponse)
+	err := c.cc.Invoke(ctx, AudiobookManagementService_ScanLibrary_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *audiobookManagementServiceClient) ListAudiobookFiles(ctx context.Context, in *ListAudiobookFilesRequest, opts ...grpc.CallOption) (*ListAudiobookFilesResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListAudiobookFilesResponse)
+	err := c.cc.Invoke(ctx, AudiobookManagementService_ListAudiobookFiles_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *audiobookManagementServiceClient) ListMissing(ctx context.Context, in *ListMissingRequest, opts ...grpc.CallOption) (*ListMissingResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ListMissingResponse)
+	err := c.cc.Invoke(ctx, AudiobookManagementService_ListMissing_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *audiobookManagementServiceClient) ImportAudiobookFile(ctx context.Context, in *ImportAudiobookFileRequest, opts ...grpc.CallOption) (*ImportAudiobookFileResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(ImportAudiobookFileResponse)
+	err := c.cc.Invoke(ctx, AudiobookManagementService_ImportAudiobookFile_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // AudiobookManagementServiceServer is the server API for AudiobookManagementService service.
 // All implementations must embed UnimplementedAudiobookManagementServiceServer
 // for forward compatibility.
 //
-// AudiobookManagementService is an audiobook library manager (scaffold).
+// AudiobookManagementService manages an offline audiobook library.
 type AudiobookManagementServiceServer interface {
 	AddAuthor(context.Context, *AddAuthorRequest) (*AddAuthorResponse, error)
 	GetAuthor(context.Context, *GetAuthorRequest) (*GetAuthorResponse, error)
 	ListAuthors(context.Context, *ListAuthorsRequest) (*ListAuthorsResponse, error)
+	UpdateAuthor(context.Context, *UpdateAuthorRequest) (*UpdateAuthorResponse, error)
 	RemoveAuthor(context.Context, *RemoveAuthorRequest) (*RemoveAuthorResponse, error)
 	AddAudiobook(context.Context, *AddAudiobookRequest) (*AddAudiobookResponse, error)
+	GetAudiobook(context.Context, *GetAudiobookRequest) (*GetAudiobookResponse, error)
 	ListAudiobooks(context.Context, *ListAudiobooksRequest) (*ListAudiobooksResponse, error)
+	UpdateAudiobook(context.Context, *UpdateAudiobookRequest) (*UpdateAudiobookResponse, error)
+	RemoveAudiobook(context.Context, *RemoveAudiobookRequest) (*RemoveAudiobookResponse, error)
+	ScanLibrary(context.Context, *ScanLibraryRequest) (*ScanLibraryResponse, error)
+	ListAudiobookFiles(context.Context, *ListAudiobookFilesRequest) (*ListAudiobookFilesResponse, error)
+	ListMissing(context.Context, *ListMissingRequest) (*ListMissingResponse, error)
+	ImportAudiobookFile(context.Context, *ImportAudiobookFileRequest) (*ImportAudiobookFileResponse, error)
 	mustEmbedUnimplementedAudiobookManagementServiceServer()
 }
 
@@ -140,14 +244,38 @@ func (UnimplementedAudiobookManagementServiceServer) GetAuthor(context.Context, 
 func (UnimplementedAudiobookManagementServiceServer) ListAuthors(context.Context, *ListAuthorsRequest) (*ListAuthorsResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAuthors not implemented")
 }
+func (UnimplementedAudiobookManagementServiceServer) UpdateAuthor(context.Context, *UpdateAuthorRequest) (*UpdateAuthorResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateAuthor not implemented")
+}
 func (UnimplementedAudiobookManagementServiceServer) RemoveAuthor(context.Context, *RemoveAuthorRequest) (*RemoveAuthorResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method RemoveAuthor not implemented")
 }
 func (UnimplementedAudiobookManagementServiceServer) AddAudiobook(context.Context, *AddAudiobookRequest) (*AddAudiobookResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method AddAudiobook not implemented")
 }
+func (UnimplementedAudiobookManagementServiceServer) GetAudiobook(context.Context, *GetAudiobookRequest) (*GetAudiobookResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetAudiobook not implemented")
+}
 func (UnimplementedAudiobookManagementServiceServer) ListAudiobooks(context.Context, *ListAudiobooksRequest) (*ListAudiobooksResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method ListAudiobooks not implemented")
+}
+func (UnimplementedAudiobookManagementServiceServer) UpdateAudiobook(context.Context, *UpdateAudiobookRequest) (*UpdateAudiobookResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method UpdateAudiobook not implemented")
+}
+func (UnimplementedAudiobookManagementServiceServer) RemoveAudiobook(context.Context, *RemoveAudiobookRequest) (*RemoveAudiobookResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method RemoveAudiobook not implemented")
+}
+func (UnimplementedAudiobookManagementServiceServer) ScanLibrary(context.Context, *ScanLibraryRequest) (*ScanLibraryResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ScanLibrary not implemented")
+}
+func (UnimplementedAudiobookManagementServiceServer) ListAudiobookFiles(context.Context, *ListAudiobookFilesRequest) (*ListAudiobookFilesResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListAudiobookFiles not implemented")
+}
+func (UnimplementedAudiobookManagementServiceServer) ListMissing(context.Context, *ListMissingRequest) (*ListMissingResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ListMissing not implemented")
+}
+func (UnimplementedAudiobookManagementServiceServer) ImportAudiobookFile(context.Context, *ImportAudiobookFileRequest) (*ImportAudiobookFileResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method ImportAudiobookFile not implemented")
 }
 func (UnimplementedAudiobookManagementServiceServer) mustEmbedUnimplementedAudiobookManagementServiceServer() {
 }
@@ -225,6 +353,24 @@ func _AudiobookManagementService_ListAuthors_Handler(srv interface{}, ctx contex
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AudiobookManagementService_UpdateAuthor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAuthorRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AudiobookManagementServiceServer).UpdateAuthor(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AudiobookManagementService_UpdateAuthor_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AudiobookManagementServiceServer).UpdateAuthor(ctx, req.(*UpdateAuthorRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AudiobookManagementService_RemoveAuthor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RemoveAuthorRequest)
 	if err := dec(in); err != nil {
@@ -261,6 +407,24 @@ func _AudiobookManagementService_AddAudiobook_Handler(srv interface{}, ctx conte
 	return interceptor(ctx, in, info, handler)
 }
 
+func _AudiobookManagementService_GetAudiobook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetAudiobookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AudiobookManagementServiceServer).GetAudiobook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AudiobookManagementService_GetAudiobook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AudiobookManagementServiceServer).GetAudiobook(ctx, req.(*GetAudiobookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _AudiobookManagementService_ListAudiobooks_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListAudiobooksRequest)
 	if err := dec(in); err != nil {
@@ -275,6 +439,114 @@ func _AudiobookManagementService_ListAudiobooks_Handler(srv interface{}, ctx con
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(AudiobookManagementServiceServer).ListAudiobooks(ctx, req.(*ListAudiobooksRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AudiobookManagementService_UpdateAudiobook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateAudiobookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AudiobookManagementServiceServer).UpdateAudiobook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AudiobookManagementService_UpdateAudiobook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AudiobookManagementServiceServer).UpdateAudiobook(ctx, req.(*UpdateAudiobookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AudiobookManagementService_RemoveAudiobook_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RemoveAudiobookRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AudiobookManagementServiceServer).RemoveAudiobook(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AudiobookManagementService_RemoveAudiobook_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AudiobookManagementServiceServer).RemoveAudiobook(ctx, req.(*RemoveAudiobookRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AudiobookManagementService_ScanLibrary_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ScanLibraryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AudiobookManagementServiceServer).ScanLibrary(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AudiobookManagementService_ScanLibrary_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AudiobookManagementServiceServer).ScanLibrary(ctx, req.(*ScanLibraryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AudiobookManagementService_ListAudiobookFiles_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListAudiobookFilesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AudiobookManagementServiceServer).ListAudiobookFiles(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AudiobookManagementService_ListAudiobookFiles_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AudiobookManagementServiceServer).ListAudiobookFiles(ctx, req.(*ListAudiobookFilesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AudiobookManagementService_ListMissing_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListMissingRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AudiobookManagementServiceServer).ListMissing(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AudiobookManagementService_ListMissing_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AudiobookManagementServiceServer).ListMissing(ctx, req.(*ListMissingRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _AudiobookManagementService_ImportAudiobookFile_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ImportAudiobookFileRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(AudiobookManagementServiceServer).ImportAudiobookFile(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: AudiobookManagementService_ImportAudiobookFile_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(AudiobookManagementServiceServer).ImportAudiobookFile(ctx, req.(*ImportAudiobookFileRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -299,6 +571,10 @@ var AudiobookManagementService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AudiobookManagementService_ListAuthors_Handler,
 		},
 		{
+			MethodName: "UpdateAuthor",
+			Handler:    _AudiobookManagementService_UpdateAuthor_Handler,
+		},
+		{
 			MethodName: "RemoveAuthor",
 			Handler:    _AudiobookManagementService_RemoveAuthor_Handler,
 		},
@@ -307,8 +583,36 @@ var AudiobookManagementService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _AudiobookManagementService_AddAudiobook_Handler,
 		},
 		{
+			MethodName: "GetAudiobook",
+			Handler:    _AudiobookManagementService_GetAudiobook_Handler,
+		},
+		{
 			MethodName: "ListAudiobooks",
 			Handler:    _AudiobookManagementService_ListAudiobooks_Handler,
+		},
+		{
+			MethodName: "UpdateAudiobook",
+			Handler:    _AudiobookManagementService_UpdateAudiobook_Handler,
+		},
+		{
+			MethodName: "RemoveAudiobook",
+			Handler:    _AudiobookManagementService_RemoveAudiobook_Handler,
+		},
+		{
+			MethodName: "ScanLibrary",
+			Handler:    _AudiobookManagementService_ScanLibrary_Handler,
+		},
+		{
+			MethodName: "ListAudiobookFiles",
+			Handler:    _AudiobookManagementService_ListAudiobookFiles_Handler,
+		},
+		{
+			MethodName: "ListMissing",
+			Handler:    _AudiobookManagementService_ListMissing_Handler,
+		},
+		{
+			MethodName: "ImportAudiobookFile",
+			Handler:    _AudiobookManagementService_ImportAudiobookFile_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
