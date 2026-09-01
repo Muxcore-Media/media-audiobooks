@@ -89,6 +89,74 @@ func (x *Author) GetPath() string {
 	return ""
 }
 
+type AudiobookFile struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	AudiobookId   string                 `protobuf:"bytes,2,opt,name=audiobook_id,json=audiobookId,proto3" json:"audiobook_id,omitempty"`
+	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	Path          string                 `protobuf:"bytes,4,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *AudiobookFile) Reset() {
+	*x = AudiobookFile{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[1]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *AudiobookFile) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*AudiobookFile) ProtoMessage() {}
+
+func (x *AudiobookFile) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[1]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use AudiobookFile.ProtoReflect.Descriptor instead.
+func (*AudiobookFile) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{1}
+}
+
+func (x *AudiobookFile) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *AudiobookFile) GetAudiobookId() string {
+	if x != nil {
+		return x.AudiobookId
+	}
+	return ""
+}
+
+func (x *AudiobookFile) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *AudiobookFile) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
 type Audiobook struct {
 	state           protoimpl.MessageState `protogen:"open.v1"`
 	Id              string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
@@ -99,13 +167,14 @@ type Audiobook struct {
 	Year            int32                  `protobuf:"varint,6,opt,name=year,proto3" json:"year,omitempty"`
 	DurationSeconds int32                  `protobuf:"varint,7,opt,name=duration_seconds,json=durationSeconds,proto3" json:"duration_seconds,omitempty"`
 	Monitored       bool                   `protobuf:"varint,8,opt,name=monitored,proto3" json:"monitored,omitempty"`
+	Files           []*AudiobookFile       `protobuf:"bytes,9,rep,name=files,proto3" json:"files,omitempty"`
 	unknownFields   protoimpl.UnknownFields
 	sizeCache       protoimpl.SizeCache
 }
 
 func (x *Audiobook) Reset() {
 	*x = Audiobook{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[1]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -117,7 +186,7 @@ func (x *Audiobook) String() string {
 func (*Audiobook) ProtoMessage() {}
 
 func (x *Audiobook) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[1]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -130,7 +199,7 @@ func (x *Audiobook) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Audiobook.ProtoReflect.Descriptor instead.
 func (*Audiobook) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{1}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *Audiobook) GetId() string {
@@ -189,6 +258,13 @@ func (x *Audiobook) GetMonitored() bool {
 	return false
 }
 
+func (x *Audiobook) GetFiles() []*AudiobookFile {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
 type AddAuthorRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Name          string                 `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
@@ -200,7 +276,7 @@ type AddAuthorRequest struct {
 
 func (x *AddAuthorRequest) Reset() {
 	*x = AddAuthorRequest{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[2]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -212,7 +288,7 @@ func (x *AddAuthorRequest) String() string {
 func (*AddAuthorRequest) ProtoMessage() {}
 
 func (x *AddAuthorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[2]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -225,7 +301,7 @@ func (x *AddAuthorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddAuthorRequest.ProtoReflect.Descriptor instead.
 func (*AddAuthorRequest) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{2}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *AddAuthorRequest) GetName() string {
@@ -258,7 +334,7 @@ type AddAuthorResponse struct {
 
 func (x *AddAuthorResponse) Reset() {
 	*x = AddAuthorResponse{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[3]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -270,7 +346,7 @@ func (x *AddAuthorResponse) String() string {
 func (*AddAuthorResponse) ProtoMessage() {}
 
 func (x *AddAuthorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[3]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -283,7 +359,7 @@ func (x *AddAuthorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddAuthorResponse.ProtoReflect.Descriptor instead.
 func (*AddAuthorResponse) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{3}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *AddAuthorResponse) GetAuthor() *Author {
@@ -302,7 +378,7 @@ type GetAuthorRequest struct {
 
 func (x *GetAuthorRequest) Reset() {
 	*x = GetAuthorRequest{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[4]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -314,7 +390,7 @@ func (x *GetAuthorRequest) String() string {
 func (*GetAuthorRequest) ProtoMessage() {}
 
 func (x *GetAuthorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[4]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -327,7 +403,7 @@ func (x *GetAuthorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAuthorRequest.ProtoReflect.Descriptor instead.
 func (*GetAuthorRequest) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{4}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *GetAuthorRequest) GetId() string {
@@ -346,7 +422,7 @@ type GetAuthorResponse struct {
 
 func (x *GetAuthorResponse) Reset() {
 	*x = GetAuthorResponse{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[5]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -358,7 +434,7 @@ func (x *GetAuthorResponse) String() string {
 func (*GetAuthorResponse) ProtoMessage() {}
 
 func (x *GetAuthorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[5]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -371,7 +447,7 @@ func (x *GetAuthorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use GetAuthorResponse.ProtoReflect.Descriptor instead.
 func (*GetAuthorResponse) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{5}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *GetAuthorResponse) GetAuthor() *Author {
@@ -390,7 +466,7 @@ type ListAuthorsRequest struct {
 
 func (x *ListAuthorsRequest) Reset() {
 	*x = ListAuthorsRequest{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[6]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -402,7 +478,7 @@ func (x *ListAuthorsRequest) String() string {
 func (*ListAuthorsRequest) ProtoMessage() {}
 
 func (x *ListAuthorsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[6]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -415,7 +491,7 @@ func (x *ListAuthorsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuthorsRequest.ProtoReflect.Descriptor instead.
 func (*ListAuthorsRequest) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{6}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ListAuthorsRequest) GetQuery() string {
@@ -434,7 +510,7 @@ type ListAuthorsResponse struct {
 
 func (x *ListAuthorsResponse) Reset() {
 	*x = ListAuthorsResponse{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[7]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -446,7 +522,7 @@ func (x *ListAuthorsResponse) String() string {
 func (*ListAuthorsResponse) ProtoMessage() {}
 
 func (x *ListAuthorsResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[7]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -459,12 +535,124 @@ func (x *ListAuthorsResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAuthorsResponse.ProtoReflect.Descriptor instead.
 func (*ListAuthorsResponse) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{7}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{8}
 }
 
 func (x *ListAuthorsResponse) GetAuthors() []*Author {
 	if x != nil {
 		return x.Authors
+	}
+	return nil
+}
+
+type UpdateAuthorRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Name          *string                `protobuf:"bytes,2,opt,name=name,proto3,oneof" json:"name,omitempty"`
+	Path          *string                `protobuf:"bytes,3,opt,name=path,proto3,oneof" json:"path,omitempty"`
+	Monitored     *bool                  `protobuf:"varint,4,opt,name=monitored,proto3,oneof" json:"monitored,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAuthorRequest) Reset() {
+	*x = UpdateAuthorRequest{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[9]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAuthorRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAuthorRequest) ProtoMessage() {}
+
+func (x *UpdateAuthorRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[9]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAuthorRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAuthorRequest) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{9}
+}
+
+func (x *UpdateAuthorRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateAuthorRequest) GetName() string {
+	if x != nil && x.Name != nil {
+		return *x.Name
+	}
+	return ""
+}
+
+func (x *UpdateAuthorRequest) GetPath() string {
+	if x != nil && x.Path != nil {
+		return *x.Path
+	}
+	return ""
+}
+
+func (x *UpdateAuthorRequest) GetMonitored() bool {
+	if x != nil && x.Monitored != nil {
+		return *x.Monitored
+	}
+	return false
+}
+
+type UpdateAuthorResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Author        *Author                `protobuf:"bytes,1,opt,name=author,proto3" json:"author,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAuthorResponse) Reset() {
+	*x = UpdateAuthorResponse{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[10]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAuthorResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAuthorResponse) ProtoMessage() {}
+
+func (x *UpdateAuthorResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[10]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAuthorResponse.ProtoReflect.Descriptor instead.
+func (*UpdateAuthorResponse) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *UpdateAuthorResponse) GetAuthor() *Author {
+	if x != nil {
+		return x.Author
 	}
 	return nil
 }
@@ -479,7 +667,7 @@ type RemoveAuthorRequest struct {
 
 func (x *RemoveAuthorRequest) Reset() {
 	*x = RemoveAuthorRequest{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[8]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -491,7 +679,7 @@ func (x *RemoveAuthorRequest) String() string {
 func (*RemoveAuthorRequest) ProtoMessage() {}
 
 func (x *RemoveAuthorRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[8]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -504,7 +692,7 @@ func (x *RemoveAuthorRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveAuthorRequest.ProtoReflect.Descriptor instead.
 func (*RemoveAuthorRequest) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{8}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *RemoveAuthorRequest) GetId() string {
@@ -530,7 +718,7 @@ type RemoveAuthorResponse struct {
 
 func (x *RemoveAuthorResponse) Reset() {
 	*x = RemoveAuthorResponse{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[9]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -542,7 +730,7 @@ func (x *RemoveAuthorResponse) String() string {
 func (*RemoveAuthorResponse) ProtoMessage() {}
 
 func (x *RemoveAuthorResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[9]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -555,7 +743,7 @@ func (x *RemoveAuthorResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use RemoveAuthorResponse.ProtoReflect.Descriptor instead.
 func (*RemoveAuthorResponse) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{9}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *RemoveAuthorResponse) GetSuccess() bool {
@@ -580,7 +768,7 @@ type AddAudiobookRequest struct {
 
 func (x *AddAudiobookRequest) Reset() {
 	*x = AddAudiobookRequest{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[10]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -592,7 +780,7 @@ func (x *AddAudiobookRequest) String() string {
 func (*AddAudiobookRequest) ProtoMessage() {}
 
 func (x *AddAudiobookRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[10]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -605,7 +793,7 @@ func (x *AddAudiobookRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddAudiobookRequest.ProtoReflect.Descriptor instead.
 func (*AddAudiobookRequest) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{10}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *AddAudiobookRequest) GetAuthorId() string {
@@ -666,7 +854,7 @@ type AddAudiobookResponse struct {
 
 func (x *AddAudiobookResponse) Reset() {
 	*x = AddAudiobookResponse{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[11]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -678,7 +866,7 @@ func (x *AddAudiobookResponse) String() string {
 func (*AddAudiobookResponse) ProtoMessage() {}
 
 func (x *AddAudiobookResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[11]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -691,10 +879,98 @@ func (x *AddAudiobookResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use AddAudiobookResponse.ProtoReflect.Descriptor instead.
 func (*AddAudiobookResponse) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{11}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *AddAudiobookResponse) GetAudiobook() *Audiobook {
+	if x != nil {
+		return x.Audiobook
+	}
+	return nil
+}
+
+type GetAudiobookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAudiobookRequest) Reset() {
+	*x = GetAudiobookRequest{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAudiobookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAudiobookRequest) ProtoMessage() {}
+
+func (x *GetAudiobookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAudiobookRequest.ProtoReflect.Descriptor instead.
+func (*GetAudiobookRequest) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *GetAudiobookRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+type GetAudiobookResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Audiobook     *Audiobook             `protobuf:"bytes,1,opt,name=audiobook,proto3" json:"audiobook,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetAudiobookResponse) Reset() {
+	*x = GetAudiobookResponse{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[16]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetAudiobookResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetAudiobookResponse) ProtoMessage() {}
+
+func (x *GetAudiobookResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[16]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetAudiobookResponse.ProtoReflect.Descriptor instead.
+func (*GetAudiobookResponse) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{16}
+}
+
+func (x *GetAudiobookResponse) GetAudiobook() *Audiobook {
 	if x != nil {
 		return x.Audiobook
 	}
@@ -710,7 +986,7 @@ type ListAudiobooksRequest struct {
 
 func (x *ListAudiobooksRequest) Reset() {
 	*x = ListAudiobooksRequest{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[12]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -722,7 +998,7 @@ func (x *ListAudiobooksRequest) String() string {
 func (*ListAudiobooksRequest) ProtoMessage() {}
 
 func (x *ListAudiobooksRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[12]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -735,7 +1011,7 @@ func (x *ListAudiobooksRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAudiobooksRequest.ProtoReflect.Descriptor instead.
 func (*ListAudiobooksRequest) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{12}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ListAudiobooksRequest) GetAuthorId() string {
@@ -754,7 +1030,7 @@ type ListAudiobooksResponse struct {
 
 func (x *ListAudiobooksResponse) Reset() {
 	*x = ListAudiobooksResponse{}
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[13]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -766,7 +1042,7 @@ func (x *ListAudiobooksResponse) String() string {
 func (*ListAudiobooksResponse) ProtoMessage() {}
 
 func (x *ListAudiobooksResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[13]
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -779,12 +1055,720 @@ func (x *ListAudiobooksResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListAudiobooksResponse.ProtoReflect.Descriptor instead.
 func (*ListAudiobooksResponse) Descriptor() ([]byte, []int) {
-	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{13}
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ListAudiobooksResponse) GetAudiobooks() []*Audiobook {
 	if x != nil {
 		return x.Audiobooks
+	}
+	return nil
+}
+
+type UpdateAudiobookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	Title         *string                `protobuf:"bytes,2,opt,name=title,proto3,oneof" json:"title,omitempty"`
+	Narrator      *string                `protobuf:"bytes,3,opt,name=narrator,proto3,oneof" json:"narrator,omitempty"`
+	Asin          *string                `protobuf:"bytes,4,opt,name=asin,proto3,oneof" json:"asin,omitempty"`
+	Year          *int32                 `protobuf:"varint,5,opt,name=year,proto3,oneof" json:"year,omitempty"`
+	Monitored     *bool                  `protobuf:"varint,6,opt,name=monitored,proto3,oneof" json:"monitored,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAudiobookRequest) Reset() {
+	*x = UpdateAudiobookRequest{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[19]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAudiobookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAudiobookRequest) ProtoMessage() {}
+
+func (x *UpdateAudiobookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[19]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAudiobookRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAudiobookRequest) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{19}
+}
+
+func (x *UpdateAudiobookRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *UpdateAudiobookRequest) GetTitle() string {
+	if x != nil && x.Title != nil {
+		return *x.Title
+	}
+	return ""
+}
+
+func (x *UpdateAudiobookRequest) GetNarrator() string {
+	if x != nil && x.Narrator != nil {
+		return *x.Narrator
+	}
+	return ""
+}
+
+func (x *UpdateAudiobookRequest) GetAsin() string {
+	if x != nil && x.Asin != nil {
+		return *x.Asin
+	}
+	return ""
+}
+
+func (x *UpdateAudiobookRequest) GetYear() int32 {
+	if x != nil && x.Year != nil {
+		return *x.Year
+	}
+	return 0
+}
+
+func (x *UpdateAudiobookRequest) GetMonitored() bool {
+	if x != nil && x.Monitored != nil {
+		return *x.Monitored
+	}
+	return false
+}
+
+type UpdateAudiobookResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Audiobook     *Audiobook             `protobuf:"bytes,1,opt,name=audiobook,proto3" json:"audiobook,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAudiobookResponse) Reset() {
+	*x = UpdateAudiobookResponse{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[20]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAudiobookResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAudiobookResponse) ProtoMessage() {}
+
+func (x *UpdateAudiobookResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[20]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAudiobookResponse.ProtoReflect.Descriptor instead.
+func (*UpdateAudiobookResponse) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{20}
+}
+
+func (x *UpdateAudiobookResponse) GetAudiobook() *Audiobook {
+	if x != nil {
+		return x.Audiobook
+	}
+	return nil
+}
+
+type RemoveAudiobookRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	DeleteFiles   bool                   `protobuf:"varint,2,opt,name=delete_files,json=deleteFiles,proto3" json:"delete_files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveAudiobookRequest) Reset() {
+	*x = RemoveAudiobookRequest{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveAudiobookRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveAudiobookRequest) ProtoMessage() {}
+
+func (x *RemoveAudiobookRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveAudiobookRequest.ProtoReflect.Descriptor instead.
+func (*RemoveAudiobookRequest) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{21}
+}
+
+func (x *RemoveAudiobookRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *RemoveAudiobookRequest) GetDeleteFiles() bool {
+	if x != nil {
+		return x.DeleteFiles
+	}
+	return false
+}
+
+type RemoveAudiobookResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Success       bool                   `protobuf:"varint,1,opt,name=success,proto3" json:"success,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *RemoveAudiobookResponse) Reset() {
+	*x = RemoveAudiobookResponse{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *RemoveAudiobookResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*RemoveAudiobookResponse) ProtoMessage() {}
+
+func (x *RemoveAudiobookResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use RemoveAudiobookResponse.ProtoReflect.Descriptor instead.
+func (*RemoveAudiobookResponse) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *RemoveAudiobookResponse) GetSuccess() bool {
+	if x != nil {
+		return x.Success
+	}
+	return false
+}
+
+type ScanLibraryRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScanLibraryRequest) Reset() {
+	*x = ScanLibraryRequest{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScanLibraryRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScanLibraryRequest) ProtoMessage() {}
+
+func (x *ScanLibraryRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScanLibraryRequest.ProtoReflect.Descriptor instead.
+func (*ScanLibraryRequest) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{23}
+}
+
+type ScanLibraryResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	FilesFound    int32                  `protobuf:"varint,1,opt,name=files_found,json=filesFound,proto3" json:"files_found,omitempty"`
+	FilesImported int32                  `protobuf:"varint,2,opt,name=files_imported,json=filesImported,proto3" json:"files_imported,omitempty"`
+	FilesSkipped  int32                  `protobuf:"varint,3,opt,name=files_skipped,json=filesSkipped,proto3" json:"files_skipped,omitempty"`
+	FilesRemoved  int32                  `protobuf:"varint,4,opt,name=files_removed,json=filesRemoved,proto3" json:"files_removed,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ScanLibraryResponse) Reset() {
+	*x = ScanLibraryResponse{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ScanLibraryResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ScanLibraryResponse) ProtoMessage() {}
+
+func (x *ScanLibraryResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ScanLibraryResponse.ProtoReflect.Descriptor instead.
+func (*ScanLibraryResponse) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *ScanLibraryResponse) GetFilesFound() int32 {
+	if x != nil {
+		return x.FilesFound
+	}
+	return 0
+}
+
+func (x *ScanLibraryResponse) GetFilesImported() int32 {
+	if x != nil {
+		return x.FilesImported
+	}
+	return 0
+}
+
+func (x *ScanLibraryResponse) GetFilesSkipped() int32 {
+	if x != nil {
+		return x.FilesSkipped
+	}
+	return 0
+}
+
+func (x *ScanLibraryResponse) GetFilesRemoved() int32 {
+	if x != nil {
+		return x.FilesRemoved
+	}
+	return 0
+}
+
+type ListAudiobookFilesRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AudiobookId   string                 `protobuf:"bytes,1,opt,name=audiobook_id,json=audiobookId,proto3" json:"audiobook_id,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAudiobookFilesRequest) Reset() {
+	*x = ListAudiobookFilesRequest{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[25]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAudiobookFilesRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAudiobookFilesRequest) ProtoMessage() {}
+
+func (x *ListAudiobookFilesRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[25]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAudiobookFilesRequest.ProtoReflect.Descriptor instead.
+func (*ListAudiobookFilesRequest) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *ListAudiobookFilesRequest) GetAudiobookId() string {
+	if x != nil {
+		return x.AudiobookId
+	}
+	return ""
+}
+
+type ListAudiobookFilesResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Files         []*AudiobookFile       `protobuf:"bytes,1,rep,name=files,proto3" json:"files,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListAudiobookFilesResponse) Reset() {
+	*x = ListAudiobookFilesResponse{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[26]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListAudiobookFilesResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListAudiobookFilesResponse) ProtoMessage() {}
+
+func (x *ListAudiobookFilesResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[26]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListAudiobookFilesResponse.ProtoReflect.Descriptor instead.
+func (*ListAudiobookFilesResponse) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *ListAudiobookFilesResponse) GetFiles() []*AudiobookFile {
+	if x != nil {
+		return x.Files
+	}
+	return nil
+}
+
+type ListMissingRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          int32                  `protobuf:"varint,1,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                  `protobuf:"varint,2,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMissingRequest) Reset() {
+	*x = ListMissingRequest{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[27]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMissingRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMissingRequest) ProtoMessage() {}
+
+func (x *ListMissingRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[27]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMissingRequest.ProtoReflect.Descriptor instead.
+func (*ListMissingRequest) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{27}
+}
+
+func (x *ListMissingRequest) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListMissingRequest) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type MissingAudiobookItem struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AudiobookId   string                 `protobuf:"bytes,1,opt,name=audiobook_id,json=audiobookId,proto3" json:"audiobook_id,omitempty"`
+	AuthorId      string                 `protobuf:"bytes,2,opt,name=author_id,json=authorId,proto3" json:"author_id,omitempty"`
+	Title         string                 `protobuf:"bytes,3,opt,name=title,proto3" json:"title,omitempty"`
+	AuthorName    string                 `protobuf:"bytes,4,opt,name=author_name,json=authorName,proto3" json:"author_name,omitempty"`
+	Year          int32                  `protobuf:"varint,5,opt,name=year,proto3" json:"year,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *MissingAudiobookItem) Reset() {
+	*x = MissingAudiobookItem{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[28]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *MissingAudiobookItem) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*MissingAudiobookItem) ProtoMessage() {}
+
+func (x *MissingAudiobookItem) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[28]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use MissingAudiobookItem.ProtoReflect.Descriptor instead.
+func (*MissingAudiobookItem) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{28}
+}
+
+func (x *MissingAudiobookItem) GetAudiobookId() string {
+	if x != nil {
+		return x.AudiobookId
+	}
+	return ""
+}
+
+func (x *MissingAudiobookItem) GetAuthorId() string {
+	if x != nil {
+		return x.AuthorId
+	}
+	return ""
+}
+
+func (x *MissingAudiobookItem) GetTitle() string {
+	if x != nil {
+		return x.Title
+	}
+	return ""
+}
+
+func (x *MissingAudiobookItem) GetAuthorName() string {
+	if x != nil {
+		return x.AuthorName
+	}
+	return ""
+}
+
+func (x *MissingAudiobookItem) GetYear() int32 {
+	if x != nil {
+		return x.Year
+	}
+	return 0
+}
+
+type ListMissingResponse struct {
+	state         protoimpl.MessageState  `protogen:"open.v1"`
+	Items         []*MissingAudiobookItem `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
+	Total         int32                   `protobuf:"varint,2,opt,name=total,proto3" json:"total,omitempty"`
+	Page          int32                   `protobuf:"varint,3,opt,name=page,proto3" json:"page,omitempty"`
+	PageSize      int32                   `protobuf:"varint,4,opt,name=page_size,json=pageSize,proto3" json:"page_size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ListMissingResponse) Reset() {
+	*x = ListMissingResponse{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ListMissingResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ListMissingResponse) ProtoMessage() {}
+
+func (x *ListMissingResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ListMissingResponse.ProtoReflect.Descriptor instead.
+func (*ListMissingResponse) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *ListMissingResponse) GetItems() []*MissingAudiobookItem {
+	if x != nil {
+		return x.Items
+	}
+	return nil
+}
+
+func (x *ListMissingResponse) GetTotal() int32 {
+	if x != nil {
+		return x.Total
+	}
+	return 0
+}
+
+func (x *ListMissingResponse) GetPage() int32 {
+	if x != nil {
+		return x.Page
+	}
+	return 0
+}
+
+func (x *ListMissingResponse) GetPageSize() int32 {
+	if x != nil {
+		return x.PageSize
+	}
+	return 0
+}
+
+type ImportAudiobookFileRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	AudiobookId   string                 `protobuf:"bytes,1,opt,name=audiobook_id,json=audiobookId,proto3" json:"audiobook_id,omitempty"`
+	Path          string                 `protobuf:"bytes,2,opt,name=path,proto3" json:"path,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportAudiobookFileRequest) Reset() {
+	*x = ImportAudiobookFileRequest{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[30]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportAudiobookFileRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportAudiobookFileRequest) ProtoMessage() {}
+
+func (x *ImportAudiobookFileRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[30]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportAudiobookFileRequest.ProtoReflect.Descriptor instead.
+func (*ImportAudiobookFileRequest) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{30}
+}
+
+func (x *ImportAudiobookFileRequest) GetAudiobookId() string {
+	if x != nil {
+		return x.AudiobookId
+	}
+	return ""
+}
+
+func (x *ImportAudiobookFileRequest) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
+type ImportAudiobookFileResponse struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	File          *AudiobookFile         `protobuf:"bytes,1,opt,name=file,proto3" json:"file,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *ImportAudiobookFileResponse) Reset() {
+	*x = ImportAudiobookFileResponse{}
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[31]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *ImportAudiobookFileResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*ImportAudiobookFileResponse) ProtoMessage() {}
+
+func (x *ImportAudiobookFileResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[31]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use ImportAudiobookFileResponse.ProtoReflect.Descriptor instead.
+func (*ImportAudiobookFileResponse) Descriptor() ([]byte, []int) {
+	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP(), []int{31}
+}
+
+func (x *ImportAudiobookFileResponse) GetFile() *AudiobookFile {
+	if x != nil {
+		return x.File
 	}
 	return nil
 }
@@ -798,7 +1782,12 @@ const file_muxcore_audiobooks_v1_audiobooks_proto_rawDesc = "" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x12\n" +
 	"\x04name\x18\x02 \x01(\tR\x04name\x12\x1c\n" +
 	"\tmonitored\x18\x03 \x01(\bR\tmonitored\x12\x12\n" +
-	"\x04path\x18\x04 \x01(\tR\x04path\"\xdb\x01\n" +
+	"\x04path\x18\x04 \x01(\tR\x04path\"l\n" +
+	"\rAudiobookFile\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\faudiobook_id\x18\x02 \x01(\tR\vaudiobookId\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x12\n" +
+	"\x04path\x18\x04 \x01(\tR\x04path\"\x97\x02\n" +
 	"\tAudiobook\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x1b\n" +
 	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\x12\x14\n" +
@@ -807,7 +1796,8 @@ const file_muxcore_audiobooks_v1_audiobooks_proto_rawDesc = "" +
 	"\x04asin\x18\x05 \x01(\tR\x04asin\x12\x12\n" +
 	"\x04year\x18\x06 \x01(\x05R\x04year\x12)\n" +
 	"\x10duration_seconds\x18\a \x01(\x05R\x0fdurationSeconds\x12\x1c\n" +
-	"\tmonitored\x18\b \x01(\bR\tmonitored\"X\n" +
+	"\tmonitored\x18\b \x01(\bR\tmonitored\x12:\n" +
+	"\x05files\x18\t \x03(\v2$.muxcore.audiobooks.v1.AudiobookFileR\x05files\"X\n" +
 	"\x10AddAuthorRequest\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12\x1c\n" +
 	"\tmonitored\x18\x02 \x01(\bR\tmonitored\x12\x12\n" +
@@ -821,7 +1811,18 @@ const file_muxcore_audiobooks_v1_audiobooks_proto_rawDesc = "" +
 	"\x12ListAuthorsRequest\x12\x14\n" +
 	"\x05query\x18\x01 \x01(\tR\x05query\"N\n" +
 	"\x13ListAuthorsResponse\x127\n" +
-	"\aauthors\x18\x01 \x03(\v2\x1d.muxcore.audiobooks.v1.AuthorR\aauthors\"H\n" +
+	"\aauthors\x18\x01 \x03(\v2\x1d.muxcore.audiobooks.v1.AuthorR\aauthors\"\x9a\x01\n" +
+	"\x13UpdateAuthorRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x17\n" +
+	"\x04name\x18\x02 \x01(\tH\x00R\x04name\x88\x01\x01\x12\x17\n" +
+	"\x04path\x18\x03 \x01(\tH\x01R\x04path\x88\x01\x01\x12!\n" +
+	"\tmonitored\x18\x04 \x01(\bH\x02R\tmonitored\x88\x01\x01B\a\n" +
+	"\x05_nameB\a\n" +
+	"\x05_pathB\f\n" +
+	"\n" +
+	"_monitored\"M\n" +
+	"\x14UpdateAuthorResponse\x125\n" +
+	"\x06author\x18\x01 \x01(\v2\x1d.muxcore.audiobooks.v1.AuthorR\x06author\"H\n" +
 	"\x13RemoveAuthorRequest\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
 	"\fdelete_files\x18\x02 \x01(\bR\vdeleteFiles\"0\n" +
@@ -836,20 +1837,83 @@ const file_muxcore_audiobooks_v1_audiobooks_proto_rawDesc = "" +
 	"\x10duration_seconds\x18\x06 \x01(\x05R\x0fdurationSeconds\x12\x1c\n" +
 	"\tmonitored\x18\a \x01(\bR\tmonitored\"V\n" +
 	"\x14AddAudiobookResponse\x12>\n" +
+	"\taudiobook\x18\x01 \x01(\v2 .muxcore.audiobooks.v1.AudiobookR\taudiobook\"%\n" +
+	"\x13GetAudiobookRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\"V\n" +
+	"\x14GetAudiobookResponse\x12>\n" +
 	"\taudiobook\x18\x01 \x01(\v2 .muxcore.audiobooks.v1.AudiobookR\taudiobook\"4\n" +
 	"\x15ListAudiobooksRequest\x12\x1b\n" +
 	"\tauthor_id\x18\x01 \x01(\tR\bauthorId\"Z\n" +
 	"\x16ListAudiobooksResponse\x12@\n" +
 	"\n" +
 	"audiobooks\x18\x01 \x03(\v2 .muxcore.audiobooks.v1.AudiobookR\n" +
-	"audiobooks2\x83\x05\n" +
+	"audiobooks\"\xf0\x01\n" +
+	"\x16UpdateAudiobookRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12\x19\n" +
+	"\x05title\x18\x02 \x01(\tH\x00R\x05title\x88\x01\x01\x12\x1f\n" +
+	"\bnarrator\x18\x03 \x01(\tH\x01R\bnarrator\x88\x01\x01\x12\x17\n" +
+	"\x04asin\x18\x04 \x01(\tH\x02R\x04asin\x88\x01\x01\x12\x17\n" +
+	"\x04year\x18\x05 \x01(\x05H\x03R\x04year\x88\x01\x01\x12!\n" +
+	"\tmonitored\x18\x06 \x01(\bH\x04R\tmonitored\x88\x01\x01B\b\n" +
+	"\x06_titleB\v\n" +
+	"\t_narratorB\a\n" +
+	"\x05_asinB\a\n" +
+	"\x05_yearB\f\n" +
+	"\n" +
+	"_monitored\"Y\n" +
+	"\x17UpdateAudiobookResponse\x12>\n" +
+	"\taudiobook\x18\x01 \x01(\v2 .muxcore.audiobooks.v1.AudiobookR\taudiobook\"K\n" +
+	"\x16RemoveAudiobookRequest\x12\x0e\n" +
+	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
+	"\fdelete_files\x18\x02 \x01(\bR\vdeleteFiles\"3\n" +
+	"\x17RemoveAudiobookResponse\x12\x18\n" +
+	"\asuccess\x18\x01 \x01(\bR\asuccess\"\x14\n" +
+	"\x12ScanLibraryRequest\"\xa7\x01\n" +
+	"\x13ScanLibraryResponse\x12\x1f\n" +
+	"\vfiles_found\x18\x01 \x01(\x05R\n" +
+	"filesFound\x12%\n" +
+	"\x0efiles_imported\x18\x02 \x01(\x05R\rfilesImported\x12#\n" +
+	"\rfiles_skipped\x18\x03 \x01(\x05R\ffilesSkipped\x12#\n" +
+	"\rfiles_removed\x18\x04 \x01(\x05R\ffilesRemoved\">\n" +
+	"\x19ListAudiobookFilesRequest\x12!\n" +
+	"\faudiobook_id\x18\x01 \x01(\tR\vaudiobookId\"X\n" +
+	"\x1aListAudiobookFilesResponse\x12:\n" +
+	"\x05files\x18\x01 \x03(\v2$.muxcore.audiobooks.v1.AudiobookFileR\x05files\"E\n" +
+	"\x12ListMissingRequest\x12\x12\n" +
+	"\x04page\x18\x01 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x02 \x01(\x05R\bpageSize\"\xa1\x01\n" +
+	"\x14MissingAudiobookItem\x12!\n" +
+	"\faudiobook_id\x18\x01 \x01(\tR\vaudiobookId\x12\x1b\n" +
+	"\tauthor_id\x18\x02 \x01(\tR\bauthorId\x12\x14\n" +
+	"\x05title\x18\x03 \x01(\tR\x05title\x12\x1f\n" +
+	"\vauthor_name\x18\x04 \x01(\tR\n" +
+	"authorName\x12\x12\n" +
+	"\x04year\x18\x05 \x01(\x05R\x04year\"\x9f\x01\n" +
+	"\x13ListMissingResponse\x12A\n" +
+	"\x05items\x18\x01 \x03(\v2+.muxcore.audiobooks.v1.MissingAudiobookItemR\x05items\x12\x14\n" +
+	"\x05total\x18\x02 \x01(\x05R\x05total\x12\x12\n" +
+	"\x04page\x18\x03 \x01(\x05R\x04page\x12\x1b\n" +
+	"\tpage_size\x18\x04 \x01(\x05R\bpageSize\"S\n" +
+	"\x1aImportAudiobookFileRequest\x12!\n" +
+	"\faudiobook_id\x18\x01 \x01(\tR\vaudiobookId\x12\x12\n" +
+	"\x04path\x18\x02 \x01(\tR\x04path\"W\n" +
+	"\x1bImportAudiobookFileResponse\x128\n" +
+	"\x04file\x18\x01 \x01(\v2$.muxcore.audiobooks.v1.AudiobookFileR\x04file2\xfe\v\n" +
 	"\x1aAudiobookManagementService\x12^\n" +
 	"\tAddAuthor\x12'.muxcore.audiobooks.v1.AddAuthorRequest\x1a(.muxcore.audiobooks.v1.AddAuthorResponse\x12^\n" +
 	"\tGetAuthor\x12'.muxcore.audiobooks.v1.GetAuthorRequest\x1a(.muxcore.audiobooks.v1.GetAuthorResponse\x12d\n" +
 	"\vListAuthors\x12).muxcore.audiobooks.v1.ListAuthorsRequest\x1a*.muxcore.audiobooks.v1.ListAuthorsResponse\x12g\n" +
+	"\fUpdateAuthor\x12*.muxcore.audiobooks.v1.UpdateAuthorRequest\x1a+.muxcore.audiobooks.v1.UpdateAuthorResponse\x12g\n" +
 	"\fRemoveAuthor\x12*.muxcore.audiobooks.v1.RemoveAuthorRequest\x1a+.muxcore.audiobooks.v1.RemoveAuthorResponse\x12g\n" +
-	"\fAddAudiobook\x12*.muxcore.audiobooks.v1.AddAudiobookRequest\x1a+.muxcore.audiobooks.v1.AddAudiobookResponse\x12m\n" +
-	"\x0eListAudiobooks\x12,.muxcore.audiobooks.v1.ListAudiobooksRequest\x1a-.muxcore.audiobooks.v1.ListAudiobooksResponseBXZVgithub.com/Muxcore-Media/media-audiobooks/proto/gen/muxcore/audiobooks/v1;audiobooksv1b\x06proto3"
+	"\fAddAudiobook\x12*.muxcore.audiobooks.v1.AddAudiobookRequest\x1a+.muxcore.audiobooks.v1.AddAudiobookResponse\x12g\n" +
+	"\fGetAudiobook\x12*.muxcore.audiobooks.v1.GetAudiobookRequest\x1a+.muxcore.audiobooks.v1.GetAudiobookResponse\x12m\n" +
+	"\x0eListAudiobooks\x12,.muxcore.audiobooks.v1.ListAudiobooksRequest\x1a-.muxcore.audiobooks.v1.ListAudiobooksResponse\x12p\n" +
+	"\x0fUpdateAudiobook\x12-.muxcore.audiobooks.v1.UpdateAudiobookRequest\x1a..muxcore.audiobooks.v1.UpdateAudiobookResponse\x12p\n" +
+	"\x0fRemoveAudiobook\x12-.muxcore.audiobooks.v1.RemoveAudiobookRequest\x1a..muxcore.audiobooks.v1.RemoveAudiobookResponse\x12d\n" +
+	"\vScanLibrary\x12).muxcore.audiobooks.v1.ScanLibraryRequest\x1a*.muxcore.audiobooks.v1.ScanLibraryResponse\x12y\n" +
+	"\x12ListAudiobookFiles\x120.muxcore.audiobooks.v1.ListAudiobookFilesRequest\x1a1.muxcore.audiobooks.v1.ListAudiobookFilesResponse\x12d\n" +
+	"\vListMissing\x12).muxcore.audiobooks.v1.ListMissingRequest\x1a*.muxcore.audiobooks.v1.ListMissingResponse\x12|\n" +
+	"\x13ImportAudiobookFile\x121.muxcore.audiobooks.v1.ImportAudiobookFileRequest\x1a2.muxcore.audiobooks.v1.ImportAudiobookFileResponseBXZVgithub.com/Muxcore-Media/media-audiobooks/proto/gen/muxcore/audiobooks/v1;audiobooksv1b\x06proto3"
 
 var (
 	file_muxcore_audiobooks_v1_audiobooks_proto_rawDescOnce sync.Once
@@ -863,46 +1927,87 @@ func file_muxcore_audiobooks_v1_audiobooks_proto_rawDescGZIP() []byte {
 	return file_muxcore_audiobooks_v1_audiobooks_proto_rawDescData
 }
 
-var file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes = make([]protoimpl.MessageInfo, 14)
+var file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_muxcore_audiobooks_v1_audiobooks_proto_goTypes = []any{
-	(*Author)(nil),                 // 0: muxcore.audiobooks.v1.Author
-	(*Audiobook)(nil),              // 1: muxcore.audiobooks.v1.Audiobook
-	(*AddAuthorRequest)(nil),       // 2: muxcore.audiobooks.v1.AddAuthorRequest
-	(*AddAuthorResponse)(nil),      // 3: muxcore.audiobooks.v1.AddAuthorResponse
-	(*GetAuthorRequest)(nil),       // 4: muxcore.audiobooks.v1.GetAuthorRequest
-	(*GetAuthorResponse)(nil),      // 5: muxcore.audiobooks.v1.GetAuthorResponse
-	(*ListAuthorsRequest)(nil),     // 6: muxcore.audiobooks.v1.ListAuthorsRequest
-	(*ListAuthorsResponse)(nil),    // 7: muxcore.audiobooks.v1.ListAuthorsResponse
-	(*RemoveAuthorRequest)(nil),    // 8: muxcore.audiobooks.v1.RemoveAuthorRequest
-	(*RemoveAuthorResponse)(nil),   // 9: muxcore.audiobooks.v1.RemoveAuthorResponse
-	(*AddAudiobookRequest)(nil),    // 10: muxcore.audiobooks.v1.AddAudiobookRequest
-	(*AddAudiobookResponse)(nil),   // 11: muxcore.audiobooks.v1.AddAudiobookResponse
-	(*ListAudiobooksRequest)(nil),  // 12: muxcore.audiobooks.v1.ListAudiobooksRequest
-	(*ListAudiobooksResponse)(nil), // 13: muxcore.audiobooks.v1.ListAudiobooksResponse
+	(*Author)(nil),                      // 0: muxcore.audiobooks.v1.Author
+	(*AudiobookFile)(nil),               // 1: muxcore.audiobooks.v1.AudiobookFile
+	(*Audiobook)(nil),                   // 2: muxcore.audiobooks.v1.Audiobook
+	(*AddAuthorRequest)(nil),            // 3: muxcore.audiobooks.v1.AddAuthorRequest
+	(*AddAuthorResponse)(nil),           // 4: muxcore.audiobooks.v1.AddAuthorResponse
+	(*GetAuthorRequest)(nil),            // 5: muxcore.audiobooks.v1.GetAuthorRequest
+	(*GetAuthorResponse)(nil),           // 6: muxcore.audiobooks.v1.GetAuthorResponse
+	(*ListAuthorsRequest)(nil),          // 7: muxcore.audiobooks.v1.ListAuthorsRequest
+	(*ListAuthorsResponse)(nil),         // 8: muxcore.audiobooks.v1.ListAuthorsResponse
+	(*UpdateAuthorRequest)(nil),         // 9: muxcore.audiobooks.v1.UpdateAuthorRequest
+	(*UpdateAuthorResponse)(nil),        // 10: muxcore.audiobooks.v1.UpdateAuthorResponse
+	(*RemoveAuthorRequest)(nil),         // 11: muxcore.audiobooks.v1.RemoveAuthorRequest
+	(*RemoveAuthorResponse)(nil),        // 12: muxcore.audiobooks.v1.RemoveAuthorResponse
+	(*AddAudiobookRequest)(nil),         // 13: muxcore.audiobooks.v1.AddAudiobookRequest
+	(*AddAudiobookResponse)(nil),        // 14: muxcore.audiobooks.v1.AddAudiobookResponse
+	(*GetAudiobookRequest)(nil),         // 15: muxcore.audiobooks.v1.GetAudiobookRequest
+	(*GetAudiobookResponse)(nil),        // 16: muxcore.audiobooks.v1.GetAudiobookResponse
+	(*ListAudiobooksRequest)(nil),       // 17: muxcore.audiobooks.v1.ListAudiobooksRequest
+	(*ListAudiobooksResponse)(nil),      // 18: muxcore.audiobooks.v1.ListAudiobooksResponse
+	(*UpdateAudiobookRequest)(nil),      // 19: muxcore.audiobooks.v1.UpdateAudiobookRequest
+	(*UpdateAudiobookResponse)(nil),     // 20: muxcore.audiobooks.v1.UpdateAudiobookResponse
+	(*RemoveAudiobookRequest)(nil),      // 21: muxcore.audiobooks.v1.RemoveAudiobookRequest
+	(*RemoveAudiobookResponse)(nil),     // 22: muxcore.audiobooks.v1.RemoveAudiobookResponse
+	(*ScanLibraryRequest)(nil),          // 23: muxcore.audiobooks.v1.ScanLibraryRequest
+	(*ScanLibraryResponse)(nil),         // 24: muxcore.audiobooks.v1.ScanLibraryResponse
+	(*ListAudiobookFilesRequest)(nil),   // 25: muxcore.audiobooks.v1.ListAudiobookFilesRequest
+	(*ListAudiobookFilesResponse)(nil),  // 26: muxcore.audiobooks.v1.ListAudiobookFilesResponse
+	(*ListMissingRequest)(nil),          // 27: muxcore.audiobooks.v1.ListMissingRequest
+	(*MissingAudiobookItem)(nil),        // 28: muxcore.audiobooks.v1.MissingAudiobookItem
+	(*ListMissingResponse)(nil),         // 29: muxcore.audiobooks.v1.ListMissingResponse
+	(*ImportAudiobookFileRequest)(nil),  // 30: muxcore.audiobooks.v1.ImportAudiobookFileRequest
+	(*ImportAudiobookFileResponse)(nil), // 31: muxcore.audiobooks.v1.ImportAudiobookFileResponse
 }
 var file_muxcore_audiobooks_v1_audiobooks_proto_depIdxs = []int32{
-	0,  // 0: muxcore.audiobooks.v1.AddAuthorResponse.author:type_name -> muxcore.audiobooks.v1.Author
-	0,  // 1: muxcore.audiobooks.v1.GetAuthorResponse.author:type_name -> muxcore.audiobooks.v1.Author
-	0,  // 2: muxcore.audiobooks.v1.ListAuthorsResponse.authors:type_name -> muxcore.audiobooks.v1.Author
-	1,  // 3: muxcore.audiobooks.v1.AddAudiobookResponse.audiobook:type_name -> muxcore.audiobooks.v1.Audiobook
-	1,  // 4: muxcore.audiobooks.v1.ListAudiobooksResponse.audiobooks:type_name -> muxcore.audiobooks.v1.Audiobook
-	2,  // 5: muxcore.audiobooks.v1.AudiobookManagementService.AddAuthor:input_type -> muxcore.audiobooks.v1.AddAuthorRequest
-	4,  // 6: muxcore.audiobooks.v1.AudiobookManagementService.GetAuthor:input_type -> muxcore.audiobooks.v1.GetAuthorRequest
-	6,  // 7: muxcore.audiobooks.v1.AudiobookManagementService.ListAuthors:input_type -> muxcore.audiobooks.v1.ListAuthorsRequest
-	8,  // 8: muxcore.audiobooks.v1.AudiobookManagementService.RemoveAuthor:input_type -> muxcore.audiobooks.v1.RemoveAuthorRequest
-	10, // 9: muxcore.audiobooks.v1.AudiobookManagementService.AddAudiobook:input_type -> muxcore.audiobooks.v1.AddAudiobookRequest
-	12, // 10: muxcore.audiobooks.v1.AudiobookManagementService.ListAudiobooks:input_type -> muxcore.audiobooks.v1.ListAudiobooksRequest
-	3,  // 11: muxcore.audiobooks.v1.AudiobookManagementService.AddAuthor:output_type -> muxcore.audiobooks.v1.AddAuthorResponse
-	5,  // 12: muxcore.audiobooks.v1.AudiobookManagementService.GetAuthor:output_type -> muxcore.audiobooks.v1.GetAuthorResponse
-	7,  // 13: muxcore.audiobooks.v1.AudiobookManagementService.ListAuthors:output_type -> muxcore.audiobooks.v1.ListAuthorsResponse
-	9,  // 14: muxcore.audiobooks.v1.AudiobookManagementService.RemoveAuthor:output_type -> muxcore.audiobooks.v1.RemoveAuthorResponse
-	11, // 15: muxcore.audiobooks.v1.AudiobookManagementService.AddAudiobook:output_type -> muxcore.audiobooks.v1.AddAudiobookResponse
-	13, // 16: muxcore.audiobooks.v1.AudiobookManagementService.ListAudiobooks:output_type -> muxcore.audiobooks.v1.ListAudiobooksResponse
-	11, // [11:17] is the sub-list for method output_type
-	5,  // [5:11] is the sub-list for method input_type
-	5,  // [5:5] is the sub-list for extension type_name
-	5,  // [5:5] is the sub-list for extension extendee
-	0,  // [0:5] is the sub-list for field type_name
+	1,  // 0: muxcore.audiobooks.v1.Audiobook.files:type_name -> muxcore.audiobooks.v1.AudiobookFile
+	0,  // 1: muxcore.audiobooks.v1.AddAuthorResponse.author:type_name -> muxcore.audiobooks.v1.Author
+	0,  // 2: muxcore.audiobooks.v1.GetAuthorResponse.author:type_name -> muxcore.audiobooks.v1.Author
+	0,  // 3: muxcore.audiobooks.v1.ListAuthorsResponse.authors:type_name -> muxcore.audiobooks.v1.Author
+	0,  // 4: muxcore.audiobooks.v1.UpdateAuthorResponse.author:type_name -> muxcore.audiobooks.v1.Author
+	2,  // 5: muxcore.audiobooks.v1.AddAudiobookResponse.audiobook:type_name -> muxcore.audiobooks.v1.Audiobook
+	2,  // 6: muxcore.audiobooks.v1.GetAudiobookResponse.audiobook:type_name -> muxcore.audiobooks.v1.Audiobook
+	2,  // 7: muxcore.audiobooks.v1.ListAudiobooksResponse.audiobooks:type_name -> muxcore.audiobooks.v1.Audiobook
+	2,  // 8: muxcore.audiobooks.v1.UpdateAudiobookResponse.audiobook:type_name -> muxcore.audiobooks.v1.Audiobook
+	1,  // 9: muxcore.audiobooks.v1.ListAudiobookFilesResponse.files:type_name -> muxcore.audiobooks.v1.AudiobookFile
+	28, // 10: muxcore.audiobooks.v1.ListMissingResponse.items:type_name -> muxcore.audiobooks.v1.MissingAudiobookItem
+	1,  // 11: muxcore.audiobooks.v1.ImportAudiobookFileResponse.file:type_name -> muxcore.audiobooks.v1.AudiobookFile
+	3,  // 12: muxcore.audiobooks.v1.AudiobookManagementService.AddAuthor:input_type -> muxcore.audiobooks.v1.AddAuthorRequest
+	5,  // 13: muxcore.audiobooks.v1.AudiobookManagementService.GetAuthor:input_type -> muxcore.audiobooks.v1.GetAuthorRequest
+	7,  // 14: muxcore.audiobooks.v1.AudiobookManagementService.ListAuthors:input_type -> muxcore.audiobooks.v1.ListAuthorsRequest
+	9,  // 15: muxcore.audiobooks.v1.AudiobookManagementService.UpdateAuthor:input_type -> muxcore.audiobooks.v1.UpdateAuthorRequest
+	11, // 16: muxcore.audiobooks.v1.AudiobookManagementService.RemoveAuthor:input_type -> muxcore.audiobooks.v1.RemoveAuthorRequest
+	13, // 17: muxcore.audiobooks.v1.AudiobookManagementService.AddAudiobook:input_type -> muxcore.audiobooks.v1.AddAudiobookRequest
+	15, // 18: muxcore.audiobooks.v1.AudiobookManagementService.GetAudiobook:input_type -> muxcore.audiobooks.v1.GetAudiobookRequest
+	17, // 19: muxcore.audiobooks.v1.AudiobookManagementService.ListAudiobooks:input_type -> muxcore.audiobooks.v1.ListAudiobooksRequest
+	19, // 20: muxcore.audiobooks.v1.AudiobookManagementService.UpdateAudiobook:input_type -> muxcore.audiobooks.v1.UpdateAudiobookRequest
+	21, // 21: muxcore.audiobooks.v1.AudiobookManagementService.RemoveAudiobook:input_type -> muxcore.audiobooks.v1.RemoveAudiobookRequest
+	23, // 22: muxcore.audiobooks.v1.AudiobookManagementService.ScanLibrary:input_type -> muxcore.audiobooks.v1.ScanLibraryRequest
+	25, // 23: muxcore.audiobooks.v1.AudiobookManagementService.ListAudiobookFiles:input_type -> muxcore.audiobooks.v1.ListAudiobookFilesRequest
+	27, // 24: muxcore.audiobooks.v1.AudiobookManagementService.ListMissing:input_type -> muxcore.audiobooks.v1.ListMissingRequest
+	30, // 25: muxcore.audiobooks.v1.AudiobookManagementService.ImportAudiobookFile:input_type -> muxcore.audiobooks.v1.ImportAudiobookFileRequest
+	4,  // 26: muxcore.audiobooks.v1.AudiobookManagementService.AddAuthor:output_type -> muxcore.audiobooks.v1.AddAuthorResponse
+	6,  // 27: muxcore.audiobooks.v1.AudiobookManagementService.GetAuthor:output_type -> muxcore.audiobooks.v1.GetAuthorResponse
+	8,  // 28: muxcore.audiobooks.v1.AudiobookManagementService.ListAuthors:output_type -> muxcore.audiobooks.v1.ListAuthorsResponse
+	10, // 29: muxcore.audiobooks.v1.AudiobookManagementService.UpdateAuthor:output_type -> muxcore.audiobooks.v1.UpdateAuthorResponse
+	12, // 30: muxcore.audiobooks.v1.AudiobookManagementService.RemoveAuthor:output_type -> muxcore.audiobooks.v1.RemoveAuthorResponse
+	14, // 31: muxcore.audiobooks.v1.AudiobookManagementService.AddAudiobook:output_type -> muxcore.audiobooks.v1.AddAudiobookResponse
+	16, // 32: muxcore.audiobooks.v1.AudiobookManagementService.GetAudiobook:output_type -> muxcore.audiobooks.v1.GetAudiobookResponse
+	18, // 33: muxcore.audiobooks.v1.AudiobookManagementService.ListAudiobooks:output_type -> muxcore.audiobooks.v1.ListAudiobooksResponse
+	20, // 34: muxcore.audiobooks.v1.AudiobookManagementService.UpdateAudiobook:output_type -> muxcore.audiobooks.v1.UpdateAudiobookResponse
+	22, // 35: muxcore.audiobooks.v1.AudiobookManagementService.RemoveAudiobook:output_type -> muxcore.audiobooks.v1.RemoveAudiobookResponse
+	24, // 36: muxcore.audiobooks.v1.AudiobookManagementService.ScanLibrary:output_type -> muxcore.audiobooks.v1.ScanLibraryResponse
+	26, // 37: muxcore.audiobooks.v1.AudiobookManagementService.ListAudiobookFiles:output_type -> muxcore.audiobooks.v1.ListAudiobookFilesResponse
+	29, // 38: muxcore.audiobooks.v1.AudiobookManagementService.ListMissing:output_type -> muxcore.audiobooks.v1.ListMissingResponse
+	31, // 39: muxcore.audiobooks.v1.AudiobookManagementService.ImportAudiobookFile:output_type -> muxcore.audiobooks.v1.ImportAudiobookFileResponse
+	26, // [26:40] is the sub-list for method output_type
+	12, // [12:26] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_muxcore_audiobooks_v1_audiobooks_proto_init() }
@@ -910,13 +2015,15 @@ func file_muxcore_audiobooks_v1_audiobooks_proto_init() {
 	if File_muxcore_audiobooks_v1_audiobooks_proto != nil {
 		return
 	}
+	file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[9].OneofWrappers = []any{}
+	file_muxcore_audiobooks_v1_audiobooks_proto_msgTypes[19].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_muxcore_audiobooks_v1_audiobooks_proto_rawDesc), len(file_muxcore_audiobooks_v1_audiobooks_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   14,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -1,22 +1,25 @@
 package internal_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
+	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/Muxcore-Media/media-audiobooks/internal"
 )
 
-func TestHTTPListAuthorsFixtures(t *testing.T) {
+func startTestModule(t *testing.T) *internal.Module {
+	t.Helper()
 	data := t.TempDir()
-	lib := filepath.Join(data, "audiobooks")
+	lib := filepath.Join(data, "library")
 	if err := copyTree(filepath.Join("testdata", "library"), lib); err != nil {
 		t.Fatal(err)
 	}
-
 	m := internal.NewModule(internal.Config{
 		DataDir:    data,
 		LibraryDir: lib,
@@ -26,13 +29,15 @@ func TestHTTPListAuthorsFixtures(t *testing.T) {
 	if err := m.Init(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := m.ScanLibrary(); err != nil {
-		t.Fatal(err)
-	}
 	if err := m.Start(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = m.Stop(t.Context()) })
+	return m
+}
+
+func TestHTTPListAuthorsFixtures(t *testing.T) {
+	m := startTestModule(t)
 
 	hr, err := http.Get("http://" + m.HTTPListenAddr() + "/api/authors")
 	if err != nil {
@@ -73,5 +78,222 @@ func TestHTTPListAuthorsFixtures(t *testing.T) {
 	}
 	if missing.Page != 1 || missing.PageSize != 100 {
 		t.Fatalf("unexpected pagination: %+v", missing)
+	}
+}
+
+func TestHTTPScan(t *testing.T) {
+	m := startTestModule(t)
+	resp, err := http.Post("http://"+m.HTTPListenAddr()+"/api/scan", "application/json", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("status %d: %s", resp.StatusCode, b)
+	}
+	var res struct {
+		FilesFound int `json:"files_found"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&res); err != nil {
+		t.Fatal(err)
+	}
+	if res.FilesFound < 2 {
+		t.Fatalf("expected scanned files: %+v", res)
+	}
+}
+
+func TestHTTPAudiobookDetailAndStream(t *testing.T) {
+	m := startTestModule(t)
+
+	listResp, err := http.Get("http://" + m.HTTPListenAddr() + "/api/audiobooks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = listResp.Body.Close() }()
+	var books []struct {
+		ID    string `json:"id"`
+		Files []struct {
+			ID        string `json:"id"`
+			StreamURL string `json:"stream_url"`
+		} `json:"files"`
+	}
+	if err := json.NewDecoder(listResp.Body).Decode(&books); err != nil {
+		t.Fatal(err)
+	}
+	if len(books) == 0 || len(books[0].Files) == 0 {
+		t.Fatal("expected audiobooks with files from startup scan")
+	}
+	if books[0].Files[0].StreamURL == "" {
+		t.Fatal("expected stream_url on list")
+	}
+
+	detailResp, err := http.Get("http://" + m.HTTPListenAddr() + "/api/audiobooks/" + books[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = detailResp.Body.Close() }()
+	if detailResp.StatusCode != http.StatusOK {
+		t.Fatalf("detail status %d", detailResp.StatusCode)
+	}
+
+	streamResp, err := http.Get("http://" + m.HTTPListenAddr() + books[0].Files[0].StreamURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = streamResp.Body.Close() }()
+	if streamResp.StatusCode != http.StatusOK {
+		t.Fatalf("stream status %d", streamResp.StatusCode)
+	}
+}
+
+func TestHTTPStreamPathEscape404(t *testing.T) {
+	data := t.TempDir()
+	lib := filepath.Join(data, "library")
+	if err := os.MkdirAll(lib, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(data, "outside.mp3")
+	if err := os.WriteFile(outside, []byte("secret"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := internal.NewModule(internal.Config{
+		DataDir: data, LibraryDir: lib,
+		GRPCAddr: "127.0.0.1:0", HTTPAddr: "127.0.0.1:0",
+	})
+	if err := m.Init(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	s, err := internal.OpenStore(filepath.Join(data, "audiobooks.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	au, err := s.AddAuthor(internal.Author{Name: "Esc", Monitored: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ab, err := s.AddAudiobook(internal.Audiobook{AuthorID: au.ID, Title: "Book", Monitored: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	f, err := s.ImportAudiobookFile(ab.ID, outside, "outside")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_ = s.Close()
+
+	if err := m.Start(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = m.Stop(t.Context()) })
+
+	resp, err := http.Get("http://" + m.HTTPListenAddr() + "/api/files/" + f.ID + "/stream")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected 404 for path escape, got %d", resp.StatusCode)
+	}
+}
+
+func TestHTTPImportAudiobook(t *testing.T) {
+	data := t.TempDir()
+	lib := filepath.Join(data, "library")
+	if err := copyTree(filepath.Join("testdata", "library"), lib); err != nil {
+		t.Fatal(err)
+	}
+	stub := filepath.Join(lib, "Fixture Author", "Fixture Book", "03-import.m4b")
+	if err := os.WriteFile(stub, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	m := internal.NewModule(internal.Config{
+		DataDir: data, LibraryDir: lib,
+		GRPCAddr: "127.0.0.1:0", HTTPAddr: "127.0.0.1:0",
+	})
+	if err := m.Init(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	if err := m.Start(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = m.Stop(t.Context()) })
+
+	listResp, err := http.Get("http://" + m.HTTPListenAddr() + "/api/audiobooks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var books []struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(listResp.Body).Decode(&books); err != nil {
+		t.Fatal(err)
+	}
+	_ = listResp.Body.Close()
+	if len(books) == 0 {
+		t.Fatal("expected audiobook")
+	}
+
+	body, _ := json.Marshal(map[string]string{"path": stub})
+	importResp, err := http.Post(
+		"http://"+m.HTTPListenAddr()+"/api/audiobooks/"+books[0].ID+"/import",
+		"application/json", bytes.NewReader(body),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = importResp.Body.Close() }()
+	if importResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(importResp.Body)
+		t.Fatalf("import status %d: %s", importResp.StatusCode, b)
+	}
+
+	outsideBody, _ := json.Marshal(map[string]string{"path": "/etc/passwd"})
+	badResp, err := http.Post(
+		"http://"+m.HTTPListenAddr()+"/api/audiobooks/"+books[0].ID+"/import",
+		"application/json", bytes.NewReader(outsideBody),
+	)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = badResp.Body.Close() }()
+	if badResp.StatusCode != http.StatusBadRequest {
+		t.Fatalf("expected 400 for outside path, got %d", badResp.StatusCode)
+	}
+}
+
+func TestNewModuleDefaultLibraryDir(t *testing.T) {
+	data := t.TempDir()
+	m := internal.NewModule(internal.Config{DataDir: data})
+	if err := m.Init(t.Context()); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = m.Stop(t.Context()) })
+	root := filepath.Join(data, "Author", "Title", "file.mp3")
+	if err := os.MkdirAll(filepath.Dir(root), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(root, nil, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	res, err := m.ScanLibrary()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if res.FilesImported != 1 {
+		t.Fatalf("expected scan at data root, got %+v", res)
+	}
+}
+
+func TestModuleInfoHTTPAddrAfterStart(t *testing.T) {
+	m := startTestModule(t)
+	info := m.Info()
+	if !strings.Contains(info.HTTPAddr, ":") {
+		t.Fatalf("HTTPAddr should be bound address, got %q", info.HTTPAddr)
+	}
+	if info.HTTPAddr != m.HTTPListenAddr() {
+		t.Fatalf("Info HTTPAddr=%q listen=%q", info.HTTPAddr, m.HTTPListenAddr())
 	}
 }

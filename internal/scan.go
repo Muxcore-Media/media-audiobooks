@@ -26,6 +26,7 @@ type ScanResult struct {
 	FilesFound    int
 	FilesImported int
 	FilesSkipped  int
+	FilesRemoved  int
 }
 
 // ScanLibraryRoot walks root for audio files and upserts authors/audiobooks/files.
@@ -45,6 +46,12 @@ func (s *Store) ScanLibraryRoot(root string) (*ScanResult, error) {
 	}
 
 	res := &ScanResult{}
+	removed, err := s.purgeVanishedFiles()
+	if err != nil {
+		return nil, err
+	}
+	res.FilesRemoved = removed
+
 	err = filepath.WalkDir(root, func(path string, d fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr

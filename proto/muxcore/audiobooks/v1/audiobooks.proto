@@ -4,20 +4,35 @@ package muxcore.audiobooks.v1;
 
 option go_package = "github.com/Muxcore-Media/media-audiobooks/proto/gen/muxcore/audiobooks/v1;audiobooksv1";
 
-// AudiobookManagementService is an audiobook library manager (scaffold).
+// AudiobookManagementService manages an offline audiobook library.
 service AudiobookManagementService {
   rpc AddAuthor(AddAuthorRequest) returns (AddAuthorResponse);
   rpc GetAuthor(GetAuthorRequest) returns (GetAuthorResponse);
   rpc ListAuthors(ListAuthorsRequest) returns (ListAuthorsResponse);
+  rpc UpdateAuthor(UpdateAuthorRequest) returns (UpdateAuthorResponse);
   rpc RemoveAuthor(RemoveAuthorRequest) returns (RemoveAuthorResponse);
   rpc AddAudiobook(AddAudiobookRequest) returns (AddAudiobookResponse);
+  rpc GetAudiobook(GetAudiobookRequest) returns (GetAudiobookResponse);
   rpc ListAudiobooks(ListAudiobooksRequest) returns (ListAudiobooksResponse);
+  rpc UpdateAudiobook(UpdateAudiobookRequest) returns (UpdateAudiobookResponse);
+  rpc RemoveAudiobook(RemoveAudiobookRequest) returns (RemoveAudiobookResponse);
+  rpc ScanLibrary(ScanLibraryRequest) returns (ScanLibraryResponse);
+  rpc ListAudiobookFiles(ListAudiobookFilesRequest) returns (ListAudiobookFilesResponse);
+  rpc ListMissing(ListMissingRequest) returns (ListMissingResponse);
+  rpc ImportAudiobookFile(ImportAudiobookFileRequest) returns (ImportAudiobookFileResponse);
 }
 
 message Author {
   string id = 1;
   string name = 2;
   bool monitored = 3;
+  string path = 4;
+}
+
+message AudiobookFile {
+  string id = 1;
+  string audiobook_id = 2;
+  string title = 3;
   string path = 4;
 }
 
@@ -30,6 +45,7 @@ message Audiobook {
   int32 year = 6;
   int32 duration_seconds = 7;
   bool monitored = 8;
+  repeated AudiobookFile files = 9;
 }
 
 message AddAuthorRequest {
@@ -42,6 +58,15 @@ message GetAuthorRequest { string id = 1; }
 message GetAuthorResponse { Author author = 1; }
 message ListAuthorsRequest { string query = 1; }
 message ListAuthorsResponse { repeated Author authors = 1; }
+
+message UpdateAuthorRequest {
+  string id = 1;
+  optional string name = 2;
+  optional string path = 3;
+  optional bool monitored = 4;
+}
+message UpdateAuthorResponse { Author author = 1; }
+
 message RemoveAuthorRequest { string id = 1; bool delete_files = 2; }
 message RemoveAuthorResponse { bool success = 1; }
 
@@ -55,5 +80,59 @@ message AddAudiobookRequest {
   bool monitored = 7;
 }
 message AddAudiobookResponse { Audiobook audiobook = 1; }
+
+message GetAudiobookRequest { string id = 1; }
+message GetAudiobookResponse { Audiobook audiobook = 1; }
+
 message ListAudiobooksRequest { string author_id = 1; }
 message ListAudiobooksResponse { repeated Audiobook audiobooks = 1; }
+
+message UpdateAudiobookRequest {
+  string id = 1;
+  optional string title = 2;
+  optional string narrator = 3;
+  optional string asin = 4;
+  optional int32 year = 5;
+  optional bool monitored = 6;
+}
+message UpdateAudiobookResponse { Audiobook audiobook = 1; }
+
+message RemoveAudiobookRequest { string id = 1; bool delete_files = 2; }
+message RemoveAudiobookResponse { bool success = 1; }
+
+message ScanLibraryRequest {}
+message ScanLibraryResponse {
+  int32 files_found = 1;
+  int32 files_imported = 2;
+  int32 files_skipped = 3;
+  int32 files_removed = 4;
+}
+
+message ListAudiobookFilesRequest { string audiobook_id = 1; }
+message ListAudiobookFilesResponse { repeated AudiobookFile files = 1; }
+
+message ListMissingRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+}
+
+message MissingAudiobookItem {
+  string audiobook_id = 1;
+  string author_id = 2;
+  string title = 3;
+  string author_name = 4;
+  int32 year = 5;
+}
+
+message ListMissingResponse {
+  repeated MissingAudiobookItem items = 1;
+  int32 total = 2;
+  int32 page = 3;
+  int32 page_size = 4;
+}
+
+message ImportAudiobookFileRequest {
+  string audiobook_id = 1;
+  string path = 2;
+}
+message ImportAudiobookFileResponse { AudiobookFile file = 1; }

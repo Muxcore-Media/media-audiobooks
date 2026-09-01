@@ -11,6 +11,8 @@ import (
 	"sync"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 
 	"github.com/Muxcore-Media/core/pkg/contracts"
 	modulesdk "github.com/Muxcore-Media/core/sdk/go/module"
@@ -63,7 +65,7 @@ func NewModule(cfg Config) *Module {
 		cfg.DataDir = "./data"
 	}
 	if cfg.LibraryDir == "" {
-		cfg.LibraryDir = filepath.Join(cfg.DataDir, "audiobooks")
+		cfg.LibraryDir = cfg.DataDir
 	}
 	return &Module{
 		id: cfg.ID, grpcAddr: cfg.GRPCAddr, httpAddr: cfg.HTTPAddr,
@@ -77,7 +79,7 @@ func (m *Module) Info() contracts.ModuleInfo {
 		Roles:        []string{"media", "audiobooks"},
 		Description:  "Audiobook library manager with SQLite persistence",
 		Capabilities: []string{"media.audiobooks", "audiobooks", "settings"},
-		HTTPAddr:     m.grpcAddr,
+		HTTPAddr:     m.httpAddr,
 	}
 }
 
@@ -135,6 +137,9 @@ func (m *Module) Start(ctx context.Context) error {
 			slog.Error("health serve", "error", err)
 		}
 	}()
+	if _, err := m.ScanLibrary(); err != nil {
+		return fmt.Errorf("startup library scan: %w", err)
+	}
 	return nil
 }
 
@@ -143,6 +148,15 @@ func (m *Module) GRPCListenAddr() string { return m.grpcAddr }
 
 // HTTPListenAddr returns the bound health/HTTP API address after Start.
 func (m *Module) HTTPListenAddr() string { return m.httpAddr }
+
+// LibraryDir returns the configured library root.
+func (m *Module) LibraryDir() string { return m.libraryRoot() }
+
+func (m *Module) libraryRoot() string {
+	m.cfgMu.RLock()
+	defer m.cfgMu.RUnlock()
+	return m.libraryDir
+}
 
 func (m *Module) Stop(ctx context.Context) error {
 	if m.grpcSrv != nil {
@@ -162,7 +176,7 @@ func (m *Module) Health(ctx context.Context) error {
 	if m.store == nil {
 		return fmt.Errorf("store not open")
 	}
-	return nil
+	return m.store.Ping()
 }
 
 // ScanLibrary scans the configured library root into SQLite.
@@ -175,6 +189,20 @@ func (m *Module) ScanLibrary() (*ScanResult, error) {
 		return nil, fmt.Errorf("store not open")
 	}
 	return store.ScanLibraryRoot(root)
+}
+
+func (m *Module) deleteFilesUnderLibrary(files []*AudiobookFile) error {
+	root := m.libraryRoot()
+	for _, f := range files {
+		abs, err := pathUnderRoot(root, f.Path)
+		if err != nil {
+			continue
+		}
+		if err := os.Remove(abs); err != nil && !os.IsNotExist(err) {
+			return fmt.Errorf("delete file %q: %w", abs, err)
+		}
+	}
+	return nil
 }
 
 type abServer struct {
@@ -193,7 +221,7 @@ func (s *abServer) AddAuthor(_ context.Context, req *abv1.AddAuthorRequest) (*ab
 func (s *abServer) GetAuthor(_ context.Context, req *abv1.GetAuthorRequest) (*abv1.GetAuthorResponse, error) {
 	a, err := s.m.store.GetAuthor(req.GetId())
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
 	return &abv1.GetAuthorResponse{Author: toPBAuthor(a)}, nil
 }
@@ -210,9 +238,37 @@ func (s *abServer) ListAuthors(_ context.Context, req *abv1.ListAuthorsRequest) 
 	return &abv1.ListAuthorsResponse{Authors: out}, nil
 }
 
+func (s *abServer) UpdateAuthor(_ context.Context, req *abv1.UpdateAuthorRequest) (*abv1.UpdateAuthorResponse, error) {
+	var name, path *string
+	var monitored *bool
+	if req.Name != nil {
+		name = req.Name
+	}
+	if req.Path != nil {
+		path = req.Path
+	}
+	if req.Monitored != nil {
+		monitored = req.Monitored
+	}
+	a, err := s.m.store.UpdateAuthor(req.GetId(), name, path, monitored)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%v", err)
+	}
+	return &abv1.UpdateAuthorResponse{Author: toPBAuthor(a)}, nil
+}
+
 func (s *abServer) RemoveAuthor(_ context.Context, req *abv1.RemoveAuthorRequest) (*abv1.RemoveAuthorResponse, error) {
+	if req.GetDeleteFiles() {
+		files, err := s.m.store.ListAudiobookFilesByAuthor(req.GetId())
+		if err != nil {
+			return nil, err
+		}
+		if err := s.m.deleteFilesUnderLibrary(files); err != nil {
+			return nil, err
+		}
+	}
 	if err := s.m.store.RemoveAuthor(req.GetId()); err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
 	return &abv1.RemoveAuthorResponse{Success: true}, nil
 }
@@ -226,7 +282,19 @@ func (s *abServer) AddAudiobook(_ context.Context, req *abv1.AddAudiobookRequest
 	if err != nil {
 		return nil, err
 	}
-	return &abv1.AddAudiobookResponse{Audiobook: toPBAudiobook(ab)}, nil
+	return &abv1.AddAudiobookResponse{Audiobook: toPBAudiobook(ab, nil)}, nil
+}
+
+func (s *abServer) GetAudiobook(_ context.Context, req *abv1.GetAudiobookRequest) (*abv1.GetAudiobookResponse, error) {
+	ab, err := s.m.store.GetAudiobook(req.GetId())
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%v", err)
+	}
+	files, err := s.m.store.ListAudiobookFiles(ab.ID)
+	if err != nil {
+		return nil, err
+	}
+	return &abv1.GetAudiobookResponse{Audiobook: toPBAudiobook(ab, files)}, nil
 }
 
 func (s *abServer) ListAudiobooks(_ context.Context, req *abv1.ListAudiobooksRequest) (*abv1.ListAudiobooksResponse, error) {
@@ -236,18 +304,136 @@ func (s *abServer) ListAudiobooks(_ context.Context, req *abv1.ListAudiobooksReq
 	}
 	out := make([]*abv1.Audiobook, 0, len(items))
 	for _, ab := range items {
-		out = append(out, toPBAudiobook(ab))
+		files, _ := s.m.store.ListAudiobookFiles(ab.ID)
+		out = append(out, toPBAudiobook(ab, files))
 	}
 	return &abv1.ListAudiobooksResponse{Audiobooks: out}, nil
+}
+
+func (s *abServer) UpdateAudiobook(_ context.Context, req *abv1.UpdateAudiobookRequest) (*abv1.UpdateAudiobookResponse, error) {
+	var title, narrator, asin *string
+	var year *int32
+	var monitored *bool
+	if req.Title != nil {
+		title = req.Title
+	}
+	if req.Narrator != nil {
+		narrator = req.Narrator
+	}
+	if req.Asin != nil {
+		asin = req.Asin
+	}
+	if req.Year != nil {
+		year = req.Year
+	}
+	if req.Monitored != nil {
+		monitored = req.Monitored
+	}
+	ab, err := s.m.store.UpdateAudiobook(req.GetId(), title, narrator, asin, year, monitored)
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%v", err)
+	}
+	files, _ := s.m.store.ListAudiobookFiles(ab.ID)
+	return &abv1.UpdateAudiobookResponse{Audiobook: toPBAudiobook(ab, files)}, nil
+}
+
+func (s *abServer) RemoveAudiobook(_ context.Context, req *abv1.RemoveAudiobookRequest) (*abv1.RemoveAudiobookResponse, error) {
+	if req.GetDeleteFiles() {
+		files, err := s.m.store.ListAudiobookFiles(req.GetId())
+		if err != nil {
+			return nil, err
+		}
+		if err := s.m.deleteFilesUnderLibrary(files); err != nil {
+			return nil, err
+		}
+	}
+	if err := s.m.store.RemoveAudiobook(req.GetId()); err != nil {
+		return nil, status.Errorf(codes.NotFound, "%v", err)
+	}
+	return &abv1.RemoveAudiobookResponse{Success: true}, nil
+}
+
+func (s *abServer) ScanLibrary(_ context.Context, _ *abv1.ScanLibraryRequest) (*abv1.ScanLibraryResponse, error) {
+	res, err := s.m.ScanLibrary()
+	if err != nil {
+		return nil, err
+	}
+	return &abv1.ScanLibraryResponse{
+		FilesFound: int32(res.FilesFound), FilesImported: int32(res.FilesImported),
+		FilesSkipped: int32(res.FilesSkipped), FilesRemoved: int32(res.FilesRemoved),
+	}, nil
+}
+
+func (s *abServer) ListAudiobookFiles(_ context.Context, req *abv1.ListAudiobookFilesRequest) (*abv1.ListAudiobookFilesResponse, error) {
+	files, err := s.m.store.ListAudiobookFiles(req.GetAudiobookId())
+	if err != nil {
+		return nil, err
+	}
+	out := make([]*abv1.AudiobookFile, 0, len(files))
+	for _, f := range files {
+		out = append(out, toPBFile(f))
+	}
+	return &abv1.ListAudiobookFilesResponse{Files: out}, nil
+}
+
+func (s *abServer) ListMissing(_ context.Context, req *abv1.ListMissingRequest) (*abv1.ListMissingResponse, error) {
+	page := int(req.GetPage())
+	pageSize := int(req.GetPageSize())
+	items, total, err := s.m.store.ListMissingAudiobooks(page, pageSize)
+	if err != nil {
+		return nil, err
+	}
+	if page < 1 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 100
+	}
+	out := make([]*abv1.MissingAudiobookItem, 0, len(items))
+	for _, it := range items {
+		out = append(out, &abv1.MissingAudiobookItem{
+			AudiobookId: it.AudiobookID, AuthorId: it.AuthorID,
+			Title: it.Title, AuthorName: it.AuthorName, Year: it.Year,
+		})
+	}
+	return &abv1.ListMissingResponse{
+		Items: out, Total: int32(total), Page: int32(page), PageSize: int32(pageSize),
+	}, nil
+}
+
+func (s *abServer) ImportAudiobookFile(_ context.Context, req *abv1.ImportAudiobookFileRequest) (*abv1.ImportAudiobookFileResponse, error) {
+	root := s.m.libraryRoot()
+	abs, err := pathUnderRoot(root, req.GetPath())
+	if err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
+	}
+	f, err := s.m.store.ImportAudiobookFile(req.GetAudiobookId(), abs, "")
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "%v", err)
+	}
+	return &abv1.ImportAudiobookFileResponse{File: toPBFile(f)}, nil
 }
 
 func toPBAuthor(a *Author) *abv1.Author {
 	return &abv1.Author{Id: a.ID, Name: a.Name, Monitored: a.Monitored, Path: a.Path}
 }
 
-func toPBAudiobook(a *Audiobook) *abv1.Audiobook {
-	return &abv1.Audiobook{
+func toPBFile(f *AudiobookFile) *abv1.AudiobookFile {
+	return &abv1.AudiobookFile{
+		Id: f.ID, AudiobookId: f.AudiobookID, Title: f.Title, Path: f.Path,
+	}
+}
+
+func toPBAudiobook(a *Audiobook, files []*AudiobookFile) *abv1.Audiobook {
+	out := &abv1.Audiobook{
 		Id: a.ID, AuthorId: a.AuthorID, Title: a.Title, Narrator: a.Narrator,
 		Asin: a.ASIN, Year: a.Year, DurationSeconds: a.DurationSeconds, Monitored: a.Monitored,
 	}
+	if len(files) > 0 {
+		out.Files = make([]*abv1.AudiobookFile, 0, len(files))
+		for _, f := range files {
+			out.Files = append(out.Files, toPBFile(f))
+		}
+	}
+	return out
 }

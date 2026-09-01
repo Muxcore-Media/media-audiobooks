@@ -57,6 +57,10 @@ func OpenStore(path string) (*Store, error) {
 		_ = db.Close()
 		return nil, fmt.Errorf("enable WAL: %w", err)
 	}
+	if _, err := db.Exec(`PRAGMA foreign_keys=ON`); err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("enable foreign keys: %w", err)
+	}
 	s := &Store{db: db}
 	if err := s.migrate(); err != nil {
 		_ = db.Close()
@@ -102,6 +106,14 @@ func (s *Store) migrate() error {
 		return fmt.Errorf("migrate: %w", err)
 	}
 	return nil
+}
+
+// Ping verifies the database connection.
+func (s *Store) Ping() error {
+	if s == nil || s.db == nil {
+		return fmt.Errorf("store not open")
+	}
+	return s.db.QueryRow(`SELECT 1`).Scan(new(int))
 }
 
 // Close closes the database.
@@ -164,6 +176,36 @@ func (s *Store) ListAuthors(query string) ([]*Author, error) {
 	return out, rows.Err()
 }
 
+func (s *Store) UpdateAuthor(id string, name, path *string, monitored *bool) (*Author, error) {
+	a, err := s.GetAuthor(id)
+	if err != nil {
+		return nil, err
+	}
+	if name != nil {
+		if strings.TrimSpace(*name) == "" {
+			return nil, fmt.Errorf("author name required")
+		}
+		a.Name = *name
+	}
+	if path != nil {
+		a.Path = *path
+	}
+	if monitored != nil {
+		a.Monitored = *monitored
+	}
+	m := 0
+	if a.Monitored {
+		m = 1
+	}
+	_, err = s.db.Exec(`
+		UPDATE authors SET name = ?, monitored = ?, path = ? WHERE id = ?
+	`, a.Name, m, a.Path, id)
+	if err != nil {
+		return nil, fmt.Errorf("update author: %w", err)
+	}
+	return a, nil
+}
+
 func (s *Store) RemoveAuthor(id string) error {
 	res, err := s.db.Exec(`DELETE FROM authors WHERE id = ?`, id)
 	if err != nil {
@@ -176,9 +218,6 @@ func (s *Store) RemoveAuthor(id string) error {
 	if n == 0 {
 		return fmt.Errorf("author %q not found", id)
 	}
-	// Cascades may be off without PRAGMA foreign_keys; clean children explicitly.
-	_, _ = s.db.Exec(`DELETE FROM audiobook_files WHERE author_id = ?`, id)
-	_, _ = s.db.Exec(`DELETE FROM audiobooks WHERE author_id = ?`, id)
 	return nil
 }
 
@@ -212,6 +251,14 @@ func (s *Store) AddAudiobook(ab Audiobook) (*Audiobook, error) {
 	return &out, nil
 }
 
+func (s *Store) GetAudiobook(id string) (*Audiobook, error) {
+	row := s.db.QueryRow(`
+		SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored
+		FROM audiobooks WHERE id = ?
+	`, id)
+	return scanAudiobook(row)
+}
+
 func (s *Store) ListAudiobooks(authorID string) ([]*Audiobook, error) {
 	var (
 		rows *sql.Rows
@@ -241,6 +288,58 @@ func (s *Store) ListAudiobooks(authorID string) ([]*Audiobook, error) {
 		out = append(out, ab)
 	}
 	return out, rows.Err()
+}
+
+func (s *Store) UpdateAudiobook(id string, title, narrator, asin *string, year *int32, monitored *bool) (*Audiobook, error) {
+	ab, err := s.GetAudiobook(id)
+	if err != nil {
+		return nil, err
+	}
+	if title != nil {
+		if strings.TrimSpace(*title) == "" {
+			return nil, fmt.Errorf("audiobook title required")
+		}
+		ab.Title = *title
+	}
+	if narrator != nil {
+		ab.Narrator = *narrator
+	}
+	if asin != nil {
+		ab.ASIN = *asin
+	}
+	if year != nil {
+		ab.Year = *year
+	}
+	if monitored != nil {
+		ab.Monitored = *monitored
+	}
+	m := 0
+	if ab.Monitored {
+		m = 1
+	}
+	_, err = s.db.Exec(`
+		UPDATE audiobooks SET title = ?, narrator = ?, asin = ?, year = ?, monitored = ?
+		WHERE id = ?
+	`, ab.Title, ab.Narrator, ab.ASIN, ab.Year, m, id)
+	if err != nil {
+		return nil, fmt.Errorf("update audiobook: %w", err)
+	}
+	return ab, nil
+}
+
+func (s *Store) RemoveAudiobook(id string) error {
+	res, err := s.db.Exec(`DELETE FROM audiobooks WHERE id = ?`, id)
+	if err != nil {
+		return fmt.Errorf("delete audiobook: %w", err)
+	}
+	n, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return fmt.Errorf("audiobook %q not found", id)
+	}
+	return nil
 }
 
 // ListAudiobookFiles returns files, optionally filtered by audiobook ID.
@@ -274,7 +373,38 @@ func (s *Store) ListAudiobookFiles(audiobookID string) ([]*AudiobookFile, error)
 	return out, rows.Err()
 }
 
-// MissingAudiobook is a monitored audiobook with no files on disk.
+func (s *Store) GetAudiobookFile(id string) (*AudiobookFile, error) {
+	row := s.db.QueryRow(`
+		SELECT id, audiobook_id, author_id, title, path FROM audiobook_files WHERE id = ?
+	`, id)
+	return scanAudiobookFile(row)
+}
+
+func (s *Store) ListAudiobookFilesByAuthor(authorID string) ([]*AudiobookFile, error) {
+	rows, err := s.db.Query(`
+		SELECT id, audiobook_id, author_id, title, path FROM audiobook_files
+		WHERE author_id = ? ORDER BY title
+	`, authorID)
+	if err != nil {
+		return nil, fmt.Errorf("list author files: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	out := make([]*AudiobookFile, 0)
+	for rows.Next() {
+		f, err := scanAudiobookFile(rows)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, f)
+	}
+	return out, rows.Err()
+}
+
+func (s *Store) ListAudiobookFilesByAudiobook(audiobookID string) ([]*AudiobookFile, error) {
+	return s.ListAudiobookFiles(audiobookID)
+}
+
+// MissingAudiobook is a monitored audiobook with no on-disk files.
 type MissingAudiobook struct {
 	AudiobookID string
 	AuthorID    string
@@ -283,7 +413,7 @@ type MissingAudiobook struct {
 	Year        int32
 }
 
-// ListMissingAudiobooks returns monitored audiobooks that have no audiobook_files rows.
+// ListMissingAudiobooks returns monitored audiobooks with no present files on disk.
 func (s *Store) ListMissingAudiobooks(page, pageSize int) ([]MissingAudiobook, int, error) {
 	if page < 1 {
 		page = 1
@@ -291,39 +421,109 @@ func (s *Store) ListMissingAudiobooks(page, pageSize int) ([]MissingAudiobook, i
 	if pageSize <= 0 || pageSize > 200 {
 		pageSize = 100
 	}
-	offset := (page - 1) * pageSize
-	var total int
-	if err := s.db.QueryRow(`
-		SELECT COUNT(*)
-		FROM audiobooks ab
-		JOIN authors a ON a.id = ab.author_id
-		WHERE ab.monitored = 1 AND a.monitored = 1
-		  AND NOT EXISTS (SELECT 1 FROM audiobook_files f WHERE f.audiobook_id = ab.id)
-	`).Scan(&total); err != nil {
-		return nil, 0, fmt.Errorf("count missing audiobooks: %w", err)
+	if _, err := s.purgeVanishedFiles(); err != nil {
+		return nil, 0, err
 	}
+	all, err := s.listMissingCandidates()
+	if err != nil {
+		return nil, 0, err
+	}
+	total := len(all)
+	offset := (page - 1) * pageSize
+	if offset >= total {
+		return []MissingAudiobook{}, total, nil
+	}
+	end := offset + pageSize
+	if end > total {
+		end = total
+	}
+	return all[offset:end], total, nil
+}
+
+func (s *Store) listMissingCandidates() ([]MissingAudiobook, error) {
 	rows, err := s.db.Query(`
 		SELECT ab.id, ab.author_id, ab.title, ab.year, a.name
 		FROM audiobooks ab
 		JOIN authors a ON a.id = ab.author_id
 		WHERE ab.monitored = 1 AND a.monitored = 1
-		  AND NOT EXISTS (SELECT 1 FROM audiobook_files f WHERE f.audiobook_id = ab.id)
 		ORDER BY a.name, ab.title
-		LIMIT ? OFFSET ?
-	`, pageSize, offset)
+	`)
 	if err != nil {
-		return nil, 0, fmt.Errorf("list missing audiobooks: %w", err)
+		return nil, fmt.Errorf("list missing candidates: %w", err)
 	}
-	defer func() { _ = rows.Close() }()
-	out := make([]MissingAudiobook, 0)
+	candidates := make([]MissingAudiobook, 0)
 	for rows.Next() {
 		var item MissingAudiobook
 		if err := rows.Scan(&item.AudiobookID, &item.AuthorID, &item.Title, &item.Year, &item.AuthorName); err != nil {
-			return nil, 0, err
+			_ = rows.Close()
+			return nil, err
 		}
-		out = append(out, item)
+		candidates = append(candidates, item)
 	}
-	return out, total, rows.Err()
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	out := make([]MissingAudiobook, 0, len(candidates))
+	for _, item := range candidates {
+		files, err := s.ListAudiobookFiles(item.AudiobookID)
+		if err != nil {
+			return nil, err
+		}
+		if len(files) == 0 {
+			out = append(out, item)
+			continue
+		}
+		present := 0
+		for _, f := range files {
+			if _, err := os.Stat(f.Path); err == nil {
+				present++
+			}
+		}
+		if present == 0 {
+			out = append(out, item)
+		}
+	}
+	return out, nil
+}
+
+func (s *Store) purgeVanishedFiles() (int, error) {
+	files, err := s.ListAudiobookFiles("")
+	if err != nil {
+		return 0, err
+	}
+	removed := 0
+	for _, f := range files {
+		if _, err := os.Stat(f.Path); err != nil {
+			if _, err := s.db.Exec(`DELETE FROM audiobook_files WHERE id = ?`, f.ID); err != nil {
+				return removed, fmt.Errorf("delete vanished file row: %w", err)
+			}
+			removed++
+		}
+	}
+	return removed, nil
+}
+
+// ImportAudiobookFile attaches an existing on-disk file to an audiobook.
+func (s *Store) ImportAudiobookFile(audiobookID, absPath, fileTitle string) (*AudiobookFile, error) {
+	ab, err := s.GetAudiobook(audiobookID)
+	if err != nil {
+		return nil, err
+	}
+	if _, err := os.Stat(absPath); err != nil {
+		return nil, fmt.Errorf("file not found: %w", err)
+	}
+	if fileTitle == "" {
+		fileTitle = strings.TrimSuffix(filepath.Base(absPath), filepath.Ext(absPath))
+	}
+	return s.upsertAudiobookFile(AudiobookFile{
+		AudiobookID: ab.ID,
+		AuthorID:    ab.AuthorID,
+		Title:       fileTitle,
+		Path:        absPath,
+	})
 }
 
 func (s *Store) findAuthorByName(name string) (*Author, error) {

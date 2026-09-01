@@ -2,13 +2,27 @@
 
 ## [Unreleased]
 
+## [v0.2.0] — 2026-08-31
+
 ### Added
-- HTTP JSON stubs `GET /api/authors`, `GET /api/authors/{id}`, `GET /api/audiobooks` on health port
+- `ScanLibrary` gRPC + `POST /api/scan`; startup library scan on `Module.Start`
+- `UpdateAuthor` / `UpdateAudiobook`, `GetAudiobook` / `RemoveAudiobook`
+- `ListAudiobookFiles`, `ListMissing`, `ImportAudiobookFile` gRPC + HTTP import
+- `GET /api/audiobooks/{id}`, `GET /api/files/{id}/stream` with `files` + `stream_url` on list
+- Missing-on-disk detection (purge vanished files on scan; list treats ghost files as missing)
+- `delete_files` honored on `RemoveAuthor` / `RemoveAudiobook` (library-root only)
+- gRPC integration tests; fixture stubs under `internal/testdata/library`
+
+### Changed
+- Default `AUDIOBOOKS_LIBRARY_DIR` to `AUDIOBOOKS_DATA_DIR` (no nested `audiobooks/` subdir)
+- `Module.Info().HTTPAddr` reports HTTP listen address
+- `Health()` pings SQLite; `PRAGMA foreign_keys=ON` on store open
+- `muxcore.json` version 0.2.0
 
 ## [v0.1.0] — 2026-08-10
 
 ### Added
 - `AudiobookManagementService` (authors/audiobooks CRUD)
-- In-memory library store
+- SQLite library store
 - SettingsProvider (`library_dir`)
-- Health `:9671`
+- Health `:9671` with `GET /api/authors`, `GET /api/authors/{id}`, `GET /api/audiobooks`, `GET /api/missing`
