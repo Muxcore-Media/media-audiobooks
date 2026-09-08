@@ -145,6 +145,29 @@ func TestHTTPPatchAudiobookMonitored(t *testing.T) {
 	if ab.Monitored {
 		t.Fatal("expected audiobook unmonitored")
 	}
+
+	pathReq, err := http.NewRequest(http.MethodPatch, base+"/api/authors/"+books[0].AuthorID, bytes.NewBufferString(`{"path":"/data/audiobooks"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	pathResp, err := http.DefaultClient.Do(pathReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = pathResp.Body.Close() }()
+	if pathResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(pathResp.Body)
+		t.Fatalf("author path patch %d: %s", pathResp.StatusCode, b)
+	}
+	var author struct {
+		Path string `json:"path"`
+	}
+	if err := json.NewDecoder(pathResp.Body).Decode(&author); err != nil {
+		t.Fatal(err)
+	}
+	if author.Path != "/data/audiobooks" {
+		t.Fatalf("author path %q", author.Path)
+	}
 }
 
 func TestHTTPDeleteAudiobook(t *testing.T) {
