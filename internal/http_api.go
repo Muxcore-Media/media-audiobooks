@@ -9,9 +9,14 @@ import (
 
 func (m *Module) registerAudiobooksHTTPAPI(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/authors", m.handleListAuthorsHTTP)
+	mux.HandleFunc("POST /api/authors", m.handleAddAuthorHTTP)
 	mux.HandleFunc("GET /api/authors/{id}", m.handleGetAuthorHTTP)
+	mux.HandleFunc("POST /api/authors/{id}/audiobooks", m.handleAddAudiobookHTTP)
+	mux.HandleFunc("PATCH /api/authors/{id}", m.handlePatchAuthorHTTP)
 	mux.HandleFunc("GET /api/audiobooks", m.handleListAudiobooksHTTP)
 	mux.HandleFunc("GET /api/audiobooks/{id}", m.handleGetAudiobookHTTP)
+	mux.HandleFunc("PATCH /api/audiobooks/{id}", m.handlePatchAudiobookHTTP)
+	mux.HandleFunc("DELETE /api/audiobooks/{id}", m.handleDeleteAudiobookHTTP)
 	mux.HandleFunc("POST /api/audiobooks/{id}/import", m.handleImportAudiobookHTTP)
 	mux.HandleFunc("GET /api/missing", m.handleListMissingHTTP)
 	mux.HandleFunc("POST /api/scan", m.handleScanHTTP)
@@ -33,6 +38,82 @@ func (m *Module) handleListAuthorsHTTP(w http.ResponseWriter, r *http.Request) {
 		out = append(out, toAuthorJSON(a))
 	}
 	writeJSON(w, out)
+}
+
+func (m *Module) handleAddAuthorHTTP(w http.ResponseWriter, r *http.Request) {
+	if m.store == nil {
+		http.Error(w, `{"error":"store not open"}`, http.StatusServiceUnavailable)
+		return
+	}
+	var body struct {
+		Name      string `json:"name"`
+		Monitored *bool  `json:"monitored"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+		return
+	}
+	name := strings.TrimSpace(body.Name)
+	if name == "" {
+		http.Error(w, `{"error":"name required"}`, http.StatusBadRequest)
+		return
+	}
+	monitored := true
+	if body.Monitored != nil {
+		monitored = *body.Monitored
+	}
+	a, err := m.store.AddAuthor(Author{Name: name, Monitored: monitored})
+	if err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "required") {
+			status = http.StatusBadRequest
+		}
+		http.Error(w, fmtJSONError(err), status)
+		return
+	}
+	writeJSON(w, toAuthorJSON(a))
+}
+
+func (m *Module) handleAddAudiobookHTTP(w http.ResponseWriter, r *http.Request) {
+	authorID := strings.TrimSpace(r.PathValue("id"))
+	if authorID == "" || m.store == nil {
+		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
+		return
+	}
+	var body struct {
+		Title     string `json:"title"`
+		Narrator  string `json:"narrator"`
+		Year      int32  `json:"year"`
+		Monitored *bool  `json:"monitored"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
+		return
+	}
+	title := strings.TrimSpace(body.Title)
+	if title == "" {
+		http.Error(w, `{"error":"title required"}`, http.StatusBadRequest)
+		return
+	}
+	monitored := true
+	if body.Monitored != nil {
+		monitored = *body.Monitored
+	}
+	ab, err := m.store.AddAudiobook(Audiobook{
+		AuthorID: authorID, Title: title, Narrator: strings.TrimSpace(body.Narrator),
+		Year: body.Year, Monitored: monitored,
+	})
+	if err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "not found") {
+			status = http.StatusNotFound
+		} else if strings.Contains(err.Error(), "required") {
+			status = http.StatusBadRequest
+		}
+		http.Error(w, fmtJSONError(err), status)
+		return
+	}
+	writeJSON(w, m.audiobookJSONWithFiles(ab))
 }
 
 func (m *Module) handleGetAuthorHTTP(w http.ResponseWriter, r *http.Request) {
@@ -111,6 +192,68 @@ func (m *Module) handleGetAudiobookHTTP(w http.ResponseWriter, r *http.Request) 
 		Author:    toAuthorJSON(au),
 		Audiobook: m.audiobookJSONWithFiles(ab),
 	})
+}
+
+func (m *Module) handlePatchAuthorHTTP(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" || m.store == nil {
+		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
+		return
+	}
+	mon, ok := readMonitoredJSON(w, r)
+	if !ok {
+		return
+	}
+	a, err := m.store.UpdateAuthor(id, nil, nil, &mon)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "not found") {
+			status = http.StatusNotFound
+		}
+		http.Error(w, fmtJSONError(err), status)
+		return
+	}
+	writeJSON(w, toAuthorJSON(a))
+}
+
+func (m *Module) handlePatchAudiobookHTTP(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" || m.store == nil {
+		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
+		return
+	}
+	mon, ok := readMonitoredJSON(w, r)
+	if !ok {
+		return
+	}
+	ab, err := m.store.UpdateAudiobook(id, nil, nil, nil, nil, &mon)
+	if err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "not found") {
+			status = http.StatusNotFound
+		}
+		http.Error(w, fmtJSONError(err), status)
+		return
+	}
+	writeJSON(w, m.audiobookJSONWithFiles(ab))
+}
+
+func (m *Module) handleDeleteAudiobookHTTP(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	if id == "" || m.store == nil {
+		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
+		return
+	}
+	deleteFiles := queryDeleteFiles(r)
+	if err := m.removeAudiobook(id, deleteFiles); err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "not found") {
+			status = http.StatusNotFound
+		}
+		http.Error(w, fmtJSONError(err), status)
+		return
+	}
+	writeJSON(w, map[string]any{"removed": true, "delete_files": deleteFiles})
 }
 
 func (m *Module) handleImportAudiobookHTTP(w http.ResponseWriter, r *http.Request) {
@@ -302,6 +445,22 @@ func toAudiobookFileJSON(f *AudiobookFile) audiobookFileJSON {
 		ID: f.ID, AudiobookID: f.AudiobookID, Title: f.Title,
 		StreamURL: "/api/files/" + f.ID + "/stream",
 	}
+}
+
+func queryDeleteFiles(r *http.Request) bool {
+	raw := strings.TrimSpace(r.URL.Query().Get("delete_files"))
+	return raw == "1" || strings.EqualFold(raw, "true") || strings.EqualFold(raw, "yes")
+}
+
+func readMonitoredJSON(w http.ResponseWriter, r *http.Request) (bool, bool) {
+	var body struct {
+		Monitored *bool `json:"monitored"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Monitored == nil {
+		http.Error(w, `{"error":"monitored is required"}`, http.StatusBadRequest)
+		return false, false
+	}
+	return *body.Monitored, true
 }
 
 func writeJSON(w http.ResponseWriter, v any) {

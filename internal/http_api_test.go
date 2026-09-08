@@ -103,6 +103,103 @@ func TestHTTPScan(t *testing.T) {
 	}
 }
 
+func TestHTTPPatchAudiobookMonitored(t *testing.T) {
+	m := startTestModule(t)
+	base := "http://" + m.HTTPListenAddr()
+
+	listResp, err := http.Get(base + "/api/audiobooks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = listResp.Body.Close() }()
+	var books []struct {
+		ID       string `json:"id"`
+		AuthorID string `json:"author_id"`
+	}
+	if err := json.NewDecoder(listResp.Body).Decode(&books); err != nil {
+		t.Fatal(err)
+	}
+	if len(books) == 0 {
+		t.Fatal("expected audiobooks")
+	}
+
+	abReq, err := http.NewRequest(http.MethodPatch, base+"/api/audiobooks/"+books[0].ID, bytes.NewBufferString(`{"monitored":false}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	abResp, err := http.DefaultClient.Do(abReq)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = abResp.Body.Close() }()
+	if abResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(abResp.Body)
+		t.Fatalf("audiobook patch %d: %s", abResp.StatusCode, b)
+	}
+	var ab struct {
+		Monitored bool `json:"monitored"`
+	}
+	if err := json.NewDecoder(abResp.Body).Decode(&ab); err != nil {
+		t.Fatal(err)
+	}
+	if ab.Monitored {
+		t.Fatal("expected audiobook unmonitored")
+	}
+}
+
+func TestHTTPDeleteAudiobook(t *testing.T) {
+	m := startTestModule(t)
+	base := "http://" + m.HTTPListenAddr()
+
+	listResp, err := http.Get(base + "/api/audiobooks")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = listResp.Body.Close() }()
+	var books []struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(listResp.Body).Decode(&books); err != nil {
+		t.Fatal(err)
+	}
+	if len(books) == 0 {
+		t.Fatal("expected audiobooks")
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, base+"/api/audiobooks/"+books[0].ID+"?delete_files=1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = resp.Body.Close() }()
+	if resp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(resp.Body)
+		t.Fatalf("audiobook delete %d: %s", resp.StatusCode, b)
+	}
+	var body struct {
+		Removed     bool `json:"removed"`
+		DeleteFiles bool `json:"delete_files"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatal(err)
+	}
+	if !body.Removed || !body.DeleteFiles {
+		t.Fatalf("unexpected audiobook delete: %+v", body)
+	}
+
+	missing, err := http.Get(base + "/api/audiobooks/" + books[0].ID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = missing.Body.Close() }()
+	if missing.StatusCode != http.StatusNotFound {
+		t.Fatalf("expected audiobook 404, got %d", missing.StatusCode)
+	}
+}
+
 func TestHTTPAudiobookDetailAndStream(t *testing.T) {
 	m := startTestModule(t)
 
@@ -295,5 +392,55 @@ func TestModuleInfoHTTPAddrAfterStart(t *testing.T) {
 	}
 	if info.HTTPAddr != m.HTTPListenAddr() {
 		t.Fatalf("Info HTTPAddr=%q listen=%q", info.HTTPAddr, m.HTTPListenAddr())
+	}
+}
+
+func TestHTTPAddAuthorAndAudiobook(t *testing.T) {
+	m := startTestModule(t)
+	base := "http://" + m.HTTPListenAddr()
+
+	authorBody, _ := json.Marshal(map[string]any{"name": "Patrick Rothfuss"})
+	authorResp, err := http.Post(base+"/api/authors", "application/json", bytes.NewReader(authorBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = authorResp.Body.Close() }()
+	if authorResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(authorResp.Body)
+		t.Fatalf("add author %d: %s", authorResp.StatusCode, b)
+	}
+	var author struct {
+		ID   string `json:"id"`
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(authorResp.Body).Decode(&author); err != nil {
+		t.Fatal(err)
+	}
+	if author.ID == "" || author.Name != "Patrick Rothfuss" {
+		t.Fatalf("author: %+v", author)
+	}
+
+	bookBody, _ := json.Marshal(map[string]any{"title": "The Name of the Wind", "year": 2007, "narrator": "Nick Podehl"})
+	bookResp, err := http.Post(base+"/api/authors/"+author.ID+"/audiobooks", "application/json", bytes.NewReader(bookBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = bookResp.Body.Close() }()
+	if bookResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(bookResp.Body)
+		t.Fatalf("add audiobook %d: %s", bookResp.StatusCode, b)
+	}
+	var added struct {
+		ID       string `json:"id"`
+		AuthorID string `json:"author_id"`
+		Title    string `json:"title"`
+		Year     int32  `json:"year"`
+		Narrator string `json:"narrator"`
+	}
+	if err := json.NewDecoder(bookResp.Body).Decode(&added); err != nil {
+		t.Fatal(err)
+	}
+	if added.ID == "" || added.AuthorID != author.ID || added.Title != "The Name of the Wind" || added.Year != 2007 || added.Narrator != "Nick Podehl" {
+		t.Fatalf("added: %+v", added)
 	}
 }

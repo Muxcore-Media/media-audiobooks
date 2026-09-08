@@ -337,17 +337,21 @@ func (s *abServer) UpdateAudiobook(_ context.Context, req *abv1.UpdateAudiobookR
 	return &abv1.UpdateAudiobookResponse{Audiobook: toPBAudiobook(ab, files)}, nil
 }
 
-func (s *abServer) RemoveAudiobook(_ context.Context, req *abv1.RemoveAudiobookRequest) (*abv1.RemoveAudiobookResponse, error) {
-	if req.GetDeleteFiles() {
-		files, err := s.m.store.ListAudiobookFiles(req.GetId())
+func (m *Module) removeAudiobook(id string, deleteFiles bool) error {
+	if deleteFiles {
+		files, err := m.store.ListAudiobookFiles(id)
 		if err != nil {
-			return nil, err
+			return err
 		}
-		if err := s.m.deleteFilesUnderLibrary(files); err != nil {
-			return nil, err
+		if err := m.deleteFilesUnderLibrary(files); err != nil {
+			return err
 		}
 	}
-	if err := s.m.store.RemoveAudiobook(req.GetId()); err != nil {
+	return m.store.RemoveAudiobook(id)
+}
+
+func (s *abServer) RemoveAudiobook(_ context.Context, req *abv1.RemoveAudiobookRequest) (*abv1.RemoveAudiobookResponse, error) {
+	if err := s.m.removeAudiobook(req.GetId(), req.GetDeleteFiles()); err != nil {
 		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
 	return &abv1.RemoveAudiobookResponse{Success: true}, nil
