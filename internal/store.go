@@ -102,6 +102,16 @@ func (s *Store) migrate() error {
 		CREATE INDEX IF NOT EXISTS idx_audiobooks_author ON audiobooks(author_id);
 		CREATE INDEX IF NOT EXISTS idx_audiobook_files_book ON audiobook_files(audiobook_id);
 		CREATE INDEX IF NOT EXISTS idx_audiobook_files_path ON audiobook_files(path);
+		CREATE TABLE IF NOT EXISTS history (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			item_id TEXT NOT NULL,
+			event_type TEXT NOT NULL,
+			source_title TEXT DEFAULT '',
+			quality TEXT DEFAULT '',
+			data TEXT DEFAULT '{}',
+			date TEXT NOT NULL
+		);
+		CREATE INDEX IF NOT EXISTS idx_history_item ON history(item_id);
 	`)
 	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
@@ -342,6 +352,11 @@ func (s *Store) SetAudiobookPosterURL(id, posterURL string) (*Audiobook, error) 
 }
 
 func (s *Store) RemoveAudiobook(id string) error {
+	title := id
+	if ab, err := s.GetAudiobook(id); err == nil && ab != nil {
+		title = ab.Title
+	}
+	s.appendHistory(id, historyDeleteItem, title, "")
 	res, err := s.db.Exec(`DELETE FROM audiobooks WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("delete audiobook: %w", err)
@@ -532,12 +547,17 @@ func (s *Store) ImportAudiobookFile(audiobookID, absPath, fileTitle string) (*Au
 	if fileTitle == "" {
 		fileTitle = strings.TrimSuffix(filepath.Base(absPath), filepath.Ext(absPath))
 	}
-	return s.upsertAudiobookFile(AudiobookFile{
+	f, err := s.upsertAudiobookFile(AudiobookFile{
 		AudiobookID: ab.ID,
 		AuthorID:    ab.AuthorID,
 		Title:       fileTitle,
 		Path:        absPath,
 	})
+	if err != nil {
+		return nil, err
+	}
+	s.appendHistory(ab.ID, historyImport, fileTitle, "")
+	return f, nil
 }
 
 func (s *Store) findAuthorByName(name string) (*Author, error) {

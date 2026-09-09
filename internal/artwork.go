@@ -116,6 +116,36 @@ func (m *Module) handleListAudiobookArtworkHTTP(w http.ResponseWriter, r *http.R
 	writeJSON(w, map[string]any{"available": true, "items": items})
 }
 
+func (m *Module) handleListAudiobookHistoryHTTP(w http.ResponseWriter, r *http.Request) {
+	id := strings.TrimSpace(r.PathValue("id"))
+	if id == "" || m.store == nil {
+		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
+		return
+	}
+	if _, err := m.store.GetAudiobook(id); err != nil {
+		status := http.StatusInternalServerError
+		if strings.Contains(err.Error(), "not found") {
+			status = http.StatusNotFound
+		}
+		http.Error(w, fmtJSONError(err), status)
+		return
+	}
+	rows, total, err := m.store.scanHistory(1, 50, id, strings.TrimSpace(r.URL.Query().Get("event")))
+	if err != nil {
+		http.Error(w, fmtJSONError(err), http.StatusInternalServerError)
+		return
+	}
+	items := make([]map[string]any, 0, len(rows))
+	for _, row := range rows {
+		items = append(items, map[string]any{
+			"id": row["item_id"] + "_" + row["date"], "item_id": row["item_id"],
+			"event_type": row["event_type"], "source_title": row["source_title"],
+			"quality": row["quality"], "created_at": row["date"],
+		})
+	}
+	writeJSON(w, map[string]any{"available": true, "items": items, "total": total})
+}
+
 func (m *Module) handleReplaceAudiobookArtworkHTTP(w http.ResponseWriter, r *http.Request) {
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" || m.store == nil {
