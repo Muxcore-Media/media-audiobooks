@@ -467,3 +467,91 @@ func TestHTTPAddAuthorAndAudiobook(t *testing.T) {
 		t.Fatalf("added: %+v", added)
 	}
 }
+
+func TestHTTPAudiobookArtwork(t *testing.T) {
+	m := startTestModule(t)
+	base := "http://" + m.HTTPListenAddr()
+
+	authorBody, _ := json.Marshal(map[string]any{"name": "Artwork Author"})
+	authorResp, err := http.Post(base+"/api/authors", "application/json", bytes.NewReader(authorBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = authorResp.Body.Close() }()
+	var author struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(authorResp.Body).Decode(&author); err != nil {
+		t.Fatal(err)
+	}
+	bookBody, _ := json.Marshal(map[string]any{"title": "Cover Book", "year": 2020})
+	bookResp, err := http.Post(base+"/api/authors/"+author.ID+"/audiobooks", "application/json", bytes.NewReader(bookBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = bookResp.Body.Close() }()
+	var added struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(bookResp.Body).Decode(&added); err != nil {
+		t.Fatal(err)
+	}
+
+	emptyResp, err := http.Get(base + "/api/audiobooks/" + added.ID + "/artwork")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = emptyResp.Body.Close() }()
+	if emptyResp.StatusCode != http.StatusOK {
+		t.Fatalf("list empty status %d", emptyResp.StatusCode)
+	}
+	var listed struct {
+		Available bool `json:"available"`
+		Items     []struct {
+			URL string `json:"url"`
+		} `json:"items"`
+	}
+	if err := json.NewDecoder(emptyResp.Body).Decode(&listed); err != nil {
+		t.Fatal(err)
+	}
+	if !listed.Available || len(listed.Items) != 0 {
+		t.Fatalf("empty artwork: %+v", listed)
+	}
+
+	replaceBody, _ := json.Marshal(map[string]any{
+		"type": "poster", "filename": "cover.jpg", "data": "iVBORw0KGgo=",
+	})
+	replaceResp, err := http.Post(base+"/api/audiobooks/"+added.ID+"/artwork", "application/json", bytes.NewReader(replaceBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = replaceResp.Body.Close() }()
+	if replaceResp.StatusCode != http.StatusOK {
+		b, _ := io.ReadAll(replaceResp.Body)
+		t.Fatalf("replace %d: %s", replaceResp.StatusCode, b)
+	}
+	var replaced struct {
+		OK      bool `json:"ok"`
+		Artwork struct {
+			URL string `json:"url"`
+		} `json:"artwork"`
+	}
+	if err := json.NewDecoder(replaceResp.Body).Decode(&replaced); err != nil {
+		t.Fatal(err)
+	}
+	if !replaced.OK || !strings.Contains(replaced.Artwork.URL, "/images/"+added.ID+"/poster.jpg") {
+		t.Fatalf("replaced: %+v", replaced)
+	}
+
+	listedResp, err := http.Get(base + "/api/audiobooks/" + added.ID + "/artwork")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = listedResp.Body.Close() }()
+	if err := json.NewDecoder(listedResp.Body).Decode(&listed); err != nil {
+		t.Fatal(err)
+	}
+	if !listed.Available || len(listed.Items) != 1 || !strings.Contains(listed.Items[0].URL, "/images/"+added.ID+"/poster.jpg") {
+		t.Fatalf("listed: %+v", listed)
+	}
+}

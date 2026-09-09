@@ -26,6 +26,7 @@ type Audiobook struct {
 	ASIN            string
 	Year            int32
 	DurationSeconds int32
+	PosterURL       string
 	Monitored       bool
 }
 
@@ -104,6 +105,9 @@ func (s *Store) migrate() error {
 	`)
 	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
+	}
+	if _, err := s.db.Exec(`ALTER TABLE audiobooks ADD COLUMN poster_url TEXT NOT NULL DEFAULT ''`); err != nil && !strings.Contains(err.Error(), "duplicate column") {
+		return fmt.Errorf("migrate poster_url: %w", err)
 	}
 	return nil
 }
@@ -253,7 +257,7 @@ func (s *Store) AddAudiobook(ab Audiobook) (*Audiobook, error) {
 
 func (s *Store) GetAudiobook(id string) (*Audiobook, error) {
 	row := s.db.QueryRow(`
-		SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored
+		SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored, poster_url
 		FROM audiobooks WHERE id = ?
 	`, id)
 	return scanAudiobook(row)
@@ -266,12 +270,12 @@ func (s *Store) ListAudiobooks(authorID string) ([]*Audiobook, error) {
 	)
 	if authorID != "" {
 		rows, err = s.db.Query(`
-			SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored
+			SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored, poster_url
 			FROM audiobooks WHERE author_id = ? ORDER BY year, title
 		`, authorID)
 	} else {
 		rows, err = s.db.Query(`
-			SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored
+			SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored, poster_url
 			FROM audiobooks ORDER BY title
 		`)
 	}
@@ -318,13 +322,23 @@ func (s *Store) UpdateAudiobook(id string, title, narrator, asin *string, year *
 		m = 1
 	}
 	_, err = s.db.Exec(`
-		UPDATE audiobooks SET title = ?, narrator = ?, asin = ?, year = ?, monitored = ?
+		UPDATE audiobooks SET title = ?, narrator = ?, asin = ?, year = ?, monitored = ?, poster_url = ?
 		WHERE id = ?
-	`, ab.Title, ab.Narrator, ab.ASIN, ab.Year, m, id)
+	`, ab.Title, ab.Narrator, ab.ASIN, ab.Year, m, ab.PosterURL, id)
 	if err != nil {
 		return nil, fmt.Errorf("update audiobook: %w", err)
 	}
 	return ab, nil
+}
+
+func (s *Store) SetAudiobookPosterURL(id, posterURL string) (*Audiobook, error) {
+	if _, err := s.GetAudiobook(id); err != nil {
+		return nil, err
+	}
+	if _, err := s.db.Exec(`UPDATE audiobooks SET poster_url = ? WHERE id = ?`, posterURL, id); err != nil {
+		return nil, fmt.Errorf("update audiobook poster: %w", err)
+	}
+	return s.GetAudiobook(id)
 }
 
 func (s *Store) RemoveAudiobook(id string) error {
@@ -543,7 +557,7 @@ func (s *Store) findAuthorByName(name string) (*Author, error) {
 
 func (s *Store) findAudiobook(authorID, title string) (*Audiobook, error) {
 	row := s.db.QueryRow(`
-		SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored FROM audiobooks
+		SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored, poster_url FROM audiobooks
 		WHERE author_id = ? AND lower(title) = lower(?) LIMIT 1
 	`, authorID, title)
 	ab, err := scanAudiobook(row)
@@ -621,7 +635,7 @@ func scanAuthor(row rowScanner) (*Author, error) {
 func scanAudiobook(row rowScanner) (*Audiobook, error) {
 	var ab Audiobook
 	var monitored int
-	if err := row.Scan(&ab.ID, &ab.AuthorID, &ab.Title, &ab.Narrator, &ab.ASIN, &ab.Year, &ab.DurationSeconds, &monitored); err != nil {
+	if err := row.Scan(&ab.ID, &ab.AuthorID, &ab.Title, &ab.Narrator, &ab.ASIN, &ab.Year, &ab.DurationSeconds, &monitored, &ab.PosterURL); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("audiobook not found")
 		}

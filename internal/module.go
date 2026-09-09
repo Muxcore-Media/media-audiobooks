@@ -25,6 +25,7 @@ type Module struct {
 	httpAddr   string
 	dataDir    string
 	libraryDir string
+	imageDir   string
 
 	cfgMu sync.RWMutex
 	store *Store
@@ -67,9 +68,13 @@ func NewModule(cfg Config) *Module {
 	if cfg.LibraryDir == "" {
 		cfg.LibraryDir = cfg.DataDir
 	}
+	imageDir := os.Getenv("AUDIOBOOKS_IMAGE_DIR")
+	if imageDir == "" {
+		imageDir = filepath.Join(cfg.DataDir, "images")
+	}
 	return &Module{
 		id: cfg.ID, grpcAddr: cfg.GRPCAddr, httpAddr: cfg.HTTPAddr,
-		dataDir: cfg.DataDir, libraryDir: cfg.LibraryDir,
+		dataDir: cfg.DataDir, libraryDir: cfg.LibraryDir, imageDir: imageDir,
 	}
 }
 
@@ -125,6 +130,9 @@ func (m *Module) Start(ctx context.Context) error {
 		_, _ = w.Write([]byte("ok"))
 	})
 	m.registerAudiobooksHTTPAPI(mux)
+	mux.HandleFunc("/images/", func(w http.ResponseWriter, r *http.Request) {
+		http.StripPrefix("/images/", http.FileServer(http.Dir(m.getImageDir()))).ServeHTTP(w, r)
+	})
 	httpLis, err := net.Listen("tcp", m.httpAddr)
 	if err != nil {
 		return fmt.Errorf("listen HTTP %s: %w", m.httpAddr, err)

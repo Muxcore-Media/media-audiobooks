@@ -14,6 +14,8 @@ func (m *Module) registerAudiobooksHTTPAPI(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/authors/{id}/audiobooks", m.handleAddAudiobookHTTP)
 	mux.HandleFunc("PATCH /api/authors/{id}", m.handlePatchAuthorHTTP)
 	mux.HandleFunc("GET /api/audiobooks", m.handleListAudiobooksHTTP)
+	mux.HandleFunc("GET /api/audiobooks/{id}/artwork", m.handleListAudiobookArtworkHTTP)
+	mux.HandleFunc("POST /api/audiobooks/{id}/artwork", m.handleReplaceAudiobookArtworkHTTP)
 	mux.HandleFunc("GET /api/audiobooks/{id}", m.handleGetAudiobookHTTP)
 	mux.HandleFunc("PATCH /api/audiobooks/{id}", m.handlePatchAudiobookHTTP)
 	mux.HandleFunc("DELETE /api/audiobooks/{id}", m.handleDeleteAudiobookHTTP)
