@@ -1,8 +1,15 @@
 {
   "id": "media-audiobooks",
   "name": "Audiobook Manager",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "description": "Audiobook library manager with SQLite persistence and offline scan",
-  "roles": ["media", "audiobooks"],
-  "capabilities": ["media.audiobooks", "audiobooks", "settings"]
+  "roles": [
+    "media",
+    "audiobooks"
+  ],
+  "capabilities": [
+    "media.audiobooks",
+    "audiobooks",
+    "settings"
+  ]
 }

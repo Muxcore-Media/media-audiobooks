@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	manifest "github.com/Muxcore-Media/media-audiobooks"
+
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -93,7 +95,7 @@ func NewModule(cfg Config) *Module {
 
 func (m *Module) Info() contracts.ModuleInfo {
 	return contracts.ModuleInfo{
-		ID: m.id, Name: "Audiobook Manager", Version: "0.2.0",
+		ID: m.id, Name: "Audiobook Manager", Version: modulesdk.ManifestVersion(manifest.ManifestJSON),
 		Roles:        []string{"media", "audiobooks"},
 		Description:  "Audiobook library manager with SQLite persistence",
 		Capabilities: []string{"media.audiobooks", "audiobooks", "settings"},
