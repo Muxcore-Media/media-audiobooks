@@ -4,7 +4,7 @@ go 1.26.6
 
 require (
 	github.com/Muxcore-Media/core/pkg/contracts v0.6.0
-	github.com/Muxcore-Media/core/sdk/go/module v0.6.4
+	github.com/Muxcore-Media/core/sdk/go/module v0.6.6
 	github.com/google/uuid v1.6.0
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.11

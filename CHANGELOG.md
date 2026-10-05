@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased]
+
+### Security
+- Library file paths are confined with pathguard, including symlink targets (NFR-SEC-008).
+
 ## [0.2.3] - 2026-10-05
 
 ### Changed
