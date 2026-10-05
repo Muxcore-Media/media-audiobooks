@@ -1,7 +1,9 @@
 package internal
 
 import (
+	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -14,8 +16,8 @@ import (
 type Author struct {
 	ID        string
 	Name      string
-	Monitored bool
 	Path      string
+	Monitored bool
 }
 
 type Audiobook struct {
@@ -24,9 +26,9 @@ type Audiobook struct {
 	Title           string
 	Narrator        string
 	ASIN            string
+	PosterURL       string
 	Year            int32
 	DurationSeconds int32
-	PosterURL       string
 	Monitored       bool
 }
 
@@ -45,7 +47,7 @@ type Store struct {
 }
 
 // OpenStore opens or creates the SQLite database at path (WAL mode).
-func OpenStore(path string) (*Store, error) {
+func OpenStore(ctx context.Context, path string) (*Store, error) {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return nil, fmt.Errorf("create db directory: %w", err)
 	}
@@ -54,24 +56,24 @@ func OpenStore(path string) (*Store, error) {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
 	db.SetMaxOpenConns(1)
-	if _, err := db.Exec(`PRAGMA journal_mode=WAL`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA journal_mode=WAL`); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("enable WAL: %w", err)
 	}
-	if _, err := db.Exec(`PRAGMA foreign_keys=ON`); err != nil {
+	if _, err := db.ExecContext(ctx, `PRAGMA foreign_keys=ON`); err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("enable foreign keys: %w", err)
 	}
 	s := &Store{db: db}
-	if err := s.migrate(); err != nil {
+	if err := s.migrate(ctx); err != nil {
 		_ = db.Close()
 		return nil, err
 	}
 	return s, nil
 }
 
-func (s *Store) migrate() error {
-	_, err := s.db.Exec(`
+func (s *Store) migrate(ctx context.Context) error {
+	_, err := s.db.ExecContext(ctx, `
 		CREATE TABLE IF NOT EXISTS authors (
 			id          TEXT PRIMARY KEY,
 			name        TEXT NOT NULL,
@@ -116,18 +118,18 @@ func (s *Store) migrate() error {
 	if err != nil {
 		return fmt.Errorf("migrate: %w", err)
 	}
-	if _, err := s.db.Exec(`ALTER TABLE audiobooks ADD COLUMN poster_url TEXT NOT NULL DEFAULT ''`); err != nil && !strings.Contains(err.Error(), "duplicate column") {
+	if _, err := s.db.ExecContext(ctx, `ALTER TABLE audiobooks ADD COLUMN poster_url TEXT NOT NULL DEFAULT ''`); err != nil && !strings.Contains(err.Error(), "duplicate column") {
 		return fmt.Errorf("migrate poster_url: %w", err)
 	}
 	return nil
 }
 
 // Ping verifies the database connection.
-func (s *Store) Ping() error {
+func (s *Store) Ping(ctx context.Context) error {
 	if s == nil || s.db == nil {
 		return fmt.Errorf("store not open")
 	}
-	return s.db.QueryRow(`SELECT 1`).Scan(new(int))
+	return s.db.QueryRowContext(ctx, `SELECT 1`).Scan(new(int))
 }
 
 // Close closes the database.
@@ -138,7 +140,7 @@ func (s *Store) Close() error {
 	return s.db.Close()
 }
 
-func (s *Store) AddAuthor(a Author) (*Author, error) {
+func (s *Store) AddAuthor(ctx context.Context, a Author) (*Author, error) {
 	if strings.TrimSpace(a.Name) == "" {
 		return nil, fmt.Errorf("author name required")
 	}
@@ -149,7 +151,7 @@ func (s *Store) AddAuthor(a Author) (*Author, error) {
 	if a.Monitored {
 		monitored = 1
 	}
-	_, err := s.db.Exec(`
+	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO authors (id, name, monitored, path)
 		VALUES (?, ?, ?, ?)
 	`, a.ID, a.Name, monitored, a.Path)
@@ -160,15 +162,15 @@ func (s *Store) AddAuthor(a Author) (*Author, error) {
 	return &out, nil
 }
 
-func (s *Store) GetAuthor(id string) (*Author, error) {
-	row := s.db.QueryRow(`
+func (s *Store) GetAuthor(ctx context.Context, id string) (*Author, error) {
+	row := s.db.QueryRowContext(ctx, `
 		SELECT id, name, monitored, path FROM authors WHERE id = ?
 	`, id)
 	return scanAuthor(row)
 }
 
-func (s *Store) ListAuthors(query string) ([]*Author, error) {
-	rows, err := s.db.Query(`
+func (s *Store) ListAuthors(ctx context.Context, query string) ([]*Author, error) {
+	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, name, monitored, path FROM authors ORDER BY name
 	`)
 	if err != nil {
@@ -190,8 +192,8 @@ func (s *Store) ListAuthors(query string) ([]*Author, error) {
 	return out, rows.Err()
 }
 
-func (s *Store) UpdateAuthor(id string, name, path *string, monitored *bool) (*Author, error) {
-	a, err := s.GetAuthor(id)
+func (s *Store) UpdateAuthor(ctx context.Context, id string, name, path *string, monitored *bool) (*Author, error) {
+	a, err := s.GetAuthor(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -211,7 +213,7 @@ func (s *Store) UpdateAuthor(id string, name, path *string, monitored *bool) (*A
 	if a.Monitored {
 		m = 1
 	}
-	_, err = s.db.Exec(`
+	_, err = s.db.ExecContext(ctx, `
 		UPDATE authors SET name = ?, monitored = ?, path = ? WHERE id = ?
 	`, a.Name, m, a.Path, id)
 	if err != nil {
@@ -220,8 +222,8 @@ func (s *Store) UpdateAuthor(id string, name, path *string, monitored *bool) (*A
 	return a, nil
 }
 
-func (s *Store) RemoveAuthor(id string) error {
-	res, err := s.db.Exec(`DELETE FROM authors WHERE id = ?`, id)
+func (s *Store) RemoveAuthor(ctx context.Context, id string) error {
+	res, err := s.db.ExecContext(ctx, `DELETE FROM authors WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("delete author: %w", err)
 	}
@@ -235,13 +237,13 @@ func (s *Store) RemoveAuthor(id string) error {
 	return nil
 }
 
-func (s *Store) AddAudiobook(ab Audiobook) (*Audiobook, error) {
+func (s *Store) AddAudiobook(ctx context.Context, ab Audiobook) (*Audiobook, error) {
 	if strings.TrimSpace(ab.Title) == "" {
 		return nil, fmt.Errorf("audiobook title required")
 	}
 	var exists string
-	err := s.db.QueryRow(`SELECT id FROM authors WHERE id = ?`, ab.AuthorID).Scan(&exists)
-	if err == sql.ErrNoRows {
+	err := s.db.QueryRowContext(ctx, `SELECT id FROM authors WHERE id = ?`, ab.AuthorID).Scan(&exists)
+	if errors.Is(err, sql.ErrNoRows) {
 		return nil, fmt.Errorf("author %q not found", ab.AuthorID)
 	}
 	if err != nil {
@@ -254,7 +256,7 @@ func (s *Store) AddAudiobook(ab Audiobook) (*Audiobook, error) {
 	if ab.Monitored {
 		monitored = 1
 	}
-	_, err = s.db.Exec(`
+	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO audiobooks (id, author_id, title, narrator, asin, year, duration_seconds, monitored)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`, ab.ID, ab.AuthorID, ab.Title, ab.Narrator, ab.ASIN, ab.Year, ab.DurationSeconds, monitored)
@@ -265,26 +267,26 @@ func (s *Store) AddAudiobook(ab Audiobook) (*Audiobook, error) {
 	return &out, nil
 }
 
-func (s *Store) GetAudiobook(id string) (*Audiobook, error) {
-	row := s.db.QueryRow(`
+func (s *Store) GetAudiobook(ctx context.Context, id string) (*Audiobook, error) {
+	row := s.db.QueryRowContext(ctx, `
 		SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored, poster_url
 		FROM audiobooks WHERE id = ?
 	`, id)
 	return scanAudiobook(row)
 }
 
-func (s *Store) ListAudiobooks(authorID string) ([]*Audiobook, error) {
+func (s *Store) ListAudiobooks(ctx context.Context, authorID string) ([]*Audiobook, error) {
 	var (
 		rows *sql.Rows
 		err  error
 	)
 	if authorID != "" {
-		rows, err = s.db.Query(`
+		rows, err = s.db.QueryContext(ctx, `
 			SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored, poster_url
 			FROM audiobooks WHERE author_id = ? ORDER BY year, title
 		`, authorID)
 	} else {
-		rows, err = s.db.Query(`
+		rows, err = s.db.QueryContext(ctx, `
 			SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored, poster_url
 			FROM audiobooks ORDER BY title
 		`)
@@ -304,8 +306,8 @@ func (s *Store) ListAudiobooks(authorID string) ([]*Audiobook, error) {
 	return out, rows.Err()
 }
 
-func (s *Store) UpdateAudiobook(id string, title, narrator, asin *string, year *int32, monitored *bool) (*Audiobook, error) {
-	ab, err := s.GetAudiobook(id)
+func (s *Store) UpdateAudiobook(ctx context.Context, id string, title, narrator, asin *string, year *int32, monitored *bool) (*Audiobook, error) {
+	ab, err := s.GetAudiobook(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -331,7 +333,7 @@ func (s *Store) UpdateAudiobook(id string, title, narrator, asin *string, year *
 	if ab.Monitored {
 		m = 1
 	}
-	_, err = s.db.Exec(`
+	_, err = s.db.ExecContext(ctx, `
 		UPDATE audiobooks SET title = ?, narrator = ?, asin = ?, year = ?, monitored = ?, poster_url = ?
 		WHERE id = ?
 	`, ab.Title, ab.Narrator, ab.ASIN, ab.Year, m, ab.PosterURL, id)
@@ -341,23 +343,23 @@ func (s *Store) UpdateAudiobook(id string, title, narrator, asin *string, year *
 	return ab, nil
 }
 
-func (s *Store) SetAudiobookPosterURL(id, posterURL string) (*Audiobook, error) {
-	if _, err := s.GetAudiobook(id); err != nil {
+func (s *Store) SetAudiobookPosterURL(ctx context.Context, id, posterURL string) (*Audiobook, error) {
+	if _, err := s.GetAudiobook(ctx, id); err != nil {
 		return nil, err
 	}
-	if _, err := s.db.Exec(`UPDATE audiobooks SET poster_url = ? WHERE id = ?`, posterURL, id); err != nil {
+	if _, err := s.db.ExecContext(ctx, `UPDATE audiobooks SET poster_url = ? WHERE id = ?`, posterURL, id); err != nil {
 		return nil, fmt.Errorf("update audiobook poster: %w", err)
 	}
-	return s.GetAudiobook(id)
+	return s.GetAudiobook(ctx, id)
 }
 
-func (s *Store) RemoveAudiobook(id string) error {
+func (s *Store) RemoveAudiobook(ctx context.Context, id string) error {
 	title := id
-	if ab, err := s.GetAudiobook(id); err == nil && ab != nil {
+	if ab, err := s.GetAudiobook(ctx, id); err == nil && ab != nil {
 		title = ab.Title
 	}
-	s.appendHistory(id, historyDeleteItem, title, "")
-	res, err := s.db.Exec(`DELETE FROM audiobooks WHERE id = ?`, id)
+	s.appendHistory(ctx, id, historyDeleteItem, title, "")
+	res, err := s.db.ExecContext(ctx, `DELETE FROM audiobooks WHERE id = ?`, id)
 	if err != nil {
 		return fmt.Errorf("delete audiobook: %w", err)
 	}
@@ -372,18 +374,18 @@ func (s *Store) RemoveAudiobook(id string) error {
 }
 
 // ListAudiobookFiles returns files, optionally filtered by audiobook ID.
-func (s *Store) ListAudiobookFiles(audiobookID string) ([]*AudiobookFile, error) {
+func (s *Store) ListAudiobookFiles(ctx context.Context, audiobookID string) ([]*AudiobookFile, error) {
 	var (
 		rows *sql.Rows
 		err  error
 	)
 	if audiobookID != "" {
-		rows, err = s.db.Query(`
+		rows, err = s.db.QueryContext(ctx, `
 			SELECT id, audiobook_id, author_id, title, path FROM audiobook_files
 			WHERE audiobook_id = ? ORDER BY title
 		`, audiobookID)
 	} else {
-		rows, err = s.db.Query(`
+		rows, err = s.db.QueryContext(ctx, `
 			SELECT id, audiobook_id, author_id, title, path FROM audiobook_files ORDER BY title
 		`)
 	}
@@ -402,15 +404,15 @@ func (s *Store) ListAudiobookFiles(audiobookID string) ([]*AudiobookFile, error)
 	return out, rows.Err()
 }
 
-func (s *Store) GetAudiobookFile(id string) (*AudiobookFile, error) {
-	row := s.db.QueryRow(`
+func (s *Store) GetAudiobookFile(ctx context.Context, id string) (*AudiobookFile, error) {
+	row := s.db.QueryRowContext(ctx, `
 		SELECT id, audiobook_id, author_id, title, path FROM audiobook_files WHERE id = ?
 	`, id)
 	return scanAudiobookFile(row)
 }
 
-func (s *Store) ListAudiobookFilesByAuthor(authorID string) ([]*AudiobookFile, error) {
-	rows, err := s.db.Query(`
+func (s *Store) ListAudiobookFilesByAuthor(ctx context.Context, authorID string) ([]*AudiobookFile, error) {
+	rows, err := s.db.QueryContext(ctx, `
 		SELECT id, audiobook_id, author_id, title, path FROM audiobook_files
 		WHERE author_id = ? ORDER BY title
 	`, authorID)
@@ -429,8 +431,8 @@ func (s *Store) ListAudiobookFilesByAuthor(authorID string) ([]*AudiobookFile, e
 	return out, rows.Err()
 }
 
-func (s *Store) ListAudiobookFilesByAudiobook(audiobookID string) ([]*AudiobookFile, error) {
-	return s.ListAudiobookFiles(audiobookID)
+func (s *Store) ListAudiobookFilesByAudiobook(ctx context.Context, audiobookID string) ([]*AudiobookFile, error) {
+	return s.ListAudiobookFiles(ctx, audiobookID)
 }
 
 // MissingAudiobook is a monitored audiobook with no on-disk files.
@@ -443,17 +445,17 @@ type MissingAudiobook struct {
 }
 
 // ListMissingAudiobooks returns monitored audiobooks with no present files on disk.
-func (s *Store) ListMissingAudiobooks(page, pageSize int) ([]MissingAudiobook, int, error) {
+func (s *Store) ListMissingAudiobooks(ctx context.Context, page, pageSize int) ([]MissingAudiobook, int, error) {
 	if page < 1 {
 		page = 1
 	}
 	if pageSize <= 0 || pageSize > 200 {
 		pageSize = 100
 	}
-	if _, err := s.purgeVanishedFiles(); err != nil {
+	if _, err := s.purgeVanishedFiles(ctx); err != nil {
 		return nil, 0, err
 	}
-	all, err := s.listMissingCandidates()
+	all, err := s.listMissingCandidates(ctx)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -469,8 +471,8 @@ func (s *Store) ListMissingAudiobooks(page, pageSize int) ([]MissingAudiobook, i
 	return all[offset:end], total, nil
 }
 
-func (s *Store) listMissingCandidates() ([]MissingAudiobook, error) {
-	rows, err := s.db.Query(`
+func (s *Store) listMissingCandidates(ctx context.Context) ([]MissingAudiobook, error) {
+	rows, err := s.db.QueryContext(ctx, `
 		SELECT ab.id, ab.author_id, ab.title, ab.year, a.name
 		FROM audiobooks ab
 		JOIN authors a ON a.id = ab.author_id
@@ -497,7 +499,7 @@ func (s *Store) listMissingCandidates() ([]MissingAudiobook, error) {
 	}
 	out := make([]MissingAudiobook, 0, len(candidates))
 	for _, item := range candidates {
-		files, err := s.ListAudiobookFiles(item.AudiobookID)
+		files, err := s.ListAudiobookFiles(ctx, item.AudiobookID)
 		if err != nil {
 			return nil, err
 		}
@@ -518,15 +520,15 @@ func (s *Store) listMissingCandidates() ([]MissingAudiobook, error) {
 	return out, nil
 }
 
-func (s *Store) purgeVanishedFiles() (int, error) {
-	files, err := s.ListAudiobookFiles("")
+func (s *Store) purgeVanishedFiles(ctx context.Context) (int, error) {
+	files, err := s.ListAudiobookFiles(ctx, "")
 	if err != nil {
 		return 0, err
 	}
 	removed := 0
 	for _, f := range files {
 		if _, err := os.Stat(f.Path); err != nil {
-			if _, err := s.db.Exec(`DELETE FROM audiobook_files WHERE id = ?`, f.ID); err != nil {
+			if _, err := s.db.ExecContext(ctx, `DELETE FROM audiobook_files WHERE id = ?`, f.ID); err != nil {
 				return removed, fmt.Errorf("delete vanished file row: %w", err)
 			}
 			removed++
@@ -536,18 +538,18 @@ func (s *Store) purgeVanishedFiles() (int, error) {
 }
 
 // ImportAudiobookFile attaches an existing on-disk file to an audiobook.
-func (s *Store) ImportAudiobookFile(audiobookID, absPath, fileTitle string) (*AudiobookFile, error) {
-	ab, err := s.GetAudiobook(audiobookID)
+func (s *Store) ImportAudiobookFile(ctx context.Context, audiobookID, absPath, fileTitle string) (*AudiobookFile, error) {
+	ab, err := s.GetAudiobook(ctx, audiobookID)
 	if err != nil {
 		return nil, err
 	}
-	if _, err := os.Stat(absPath); err != nil {
-		return nil, fmt.Errorf("file not found: %w", err)
+	if _, statErr := os.Stat(absPath); statErr != nil {
+		return nil, fmt.Errorf("file not found: %w", statErr)
 	}
 	if fileTitle == "" {
 		fileTitle = strings.TrimSuffix(filepath.Base(absPath), filepath.Ext(absPath))
 	}
-	f, err := s.upsertAudiobookFile(AudiobookFile{
+	f, err := s.upsertAudiobookFile(ctx, AudiobookFile{
 		AudiobookID: ab.ID,
 		AuthorID:    ab.AuthorID,
 		Title:       fileTitle,
@@ -556,12 +558,12 @@ func (s *Store) ImportAudiobookFile(audiobookID, absPath, fileTitle string) (*Au
 	if err != nil {
 		return nil, err
 	}
-	s.appendHistory(ab.ID, historyImport, fileTitle, "")
+	s.appendHistory(ctx, ab.ID, historyImport, fileTitle, "")
 	return f, nil
 }
 
-func (s *Store) findAuthorByName(name string) (*Author, error) {
-	row := s.db.QueryRow(`
+func (s *Store) findAuthorByName(ctx context.Context, name string) (*Author, error) {
+	row := s.db.QueryRowContext(ctx, `
 		SELECT id, name, monitored, path FROM authors
 		WHERE lower(name) = lower(?) LIMIT 1
 	`, name)
@@ -575,8 +577,8 @@ func (s *Store) findAuthorByName(name string) (*Author, error) {
 	return a, nil
 }
 
-func (s *Store) findAudiobook(authorID, title string) (*Audiobook, error) {
-	row := s.db.QueryRow(`
+func (s *Store) findAudiobook(ctx context.Context, authorID, title string) (*Audiobook, error) {
+	row := s.db.QueryRowContext(ctx, `
 		SELECT id, author_id, title, narrator, asin, year, duration_seconds, monitored, poster_url FROM audiobooks
 		WHERE author_id = ? AND lower(title) = lower(?) LIMIT 1
 	`, authorID, title)
@@ -590,8 +592,8 @@ func (s *Store) findAudiobook(authorID, title string) (*Audiobook, error) {
 	return ab, nil
 }
 
-func (s *Store) findAudiobookFileByPath(path string) (*AudiobookFile, error) {
-	row := s.db.QueryRow(`
+func (s *Store) findAudiobookFileByPath(ctx context.Context, path string) (*AudiobookFile, error) {
+	row := s.db.QueryRowContext(ctx, `
 		SELECT id, audiobook_id, author_id, title, path FROM audiobook_files WHERE path = ?
 	`, path)
 	f, err := scanAudiobookFile(row)
@@ -604,13 +606,13 @@ func (s *Store) findAudiobookFileByPath(path string) (*AudiobookFile, error) {
 	return f, nil
 }
 
-func (s *Store) upsertAudiobookFile(f AudiobookFile) (*AudiobookFile, error) {
-	existing, err := s.findAudiobookFileByPath(f.Path)
+func (s *Store) upsertAudiobookFile(ctx context.Context, f AudiobookFile) (*AudiobookFile, error) {
+	existing, err := s.findAudiobookFileByPath(ctx, f.Path)
 	if err != nil {
 		return nil, err
 	}
 	if existing != nil {
-		_, err := s.db.Exec(`
+		_, err = s.db.ExecContext(ctx, `
 			UPDATE audiobook_files SET audiobook_id = ?, author_id = ?, title = ? WHERE id = ?
 		`, f.AudiobookID, f.AuthorID, f.Title, existing.ID)
 		if err != nil {
@@ -624,7 +626,7 @@ func (s *Store) upsertAudiobookFile(f AudiobookFile) (*AudiobookFile, error) {
 	if f.ID == "" {
 		f.ID = "af_" + uuid.NewString()[:8]
 	}
-	_, err = s.db.Exec(`
+	_, err = s.db.ExecContext(ctx, `
 		INSERT INTO audiobook_files (id, audiobook_id, author_id, title, path)
 		VALUES (?, ?, ?, ?, ?)
 	`, f.ID, f.AudiobookID, f.AuthorID, f.Title, f.Path)
@@ -643,7 +645,7 @@ func scanAuthor(row rowScanner) (*Author, error) {
 	var a Author
 	var monitored int
 	if err := row.Scan(&a.ID, &a.Name, &monitored, &a.Path); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("author not found")
 		}
 		return nil, err
@@ -656,7 +658,7 @@ func scanAudiobook(row rowScanner) (*Audiobook, error) {
 	var ab Audiobook
 	var monitored int
 	if err := row.Scan(&ab.ID, &ab.AuthorID, &ab.Title, &ab.Narrator, &ab.ASIN, &ab.Year, &ab.DurationSeconds, &monitored, &ab.PosterURL); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("audiobook not found")
 		}
 		return nil, err
@@ -668,7 +670,7 @@ func scanAudiobook(row rowScanner) (*Audiobook, error) {
 func scanAudiobookFile(row rowScanner) (*AudiobookFile, error) {
 	var f AudiobookFile
 	if err := row.Scan(&f.ID, &f.AudiobookID, &f.AuthorID, &f.Title, &f.Path); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("audiobook file not found")
 		}
 		return nil, err

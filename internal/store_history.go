@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"strings"
 	"time"
 )
@@ -16,15 +17,15 @@ func nowRFC3339() string {
 	return time.Now().UTC().Format(time.RFC3339)
 }
 
-func (s *Store) appendHistory(itemID, eventType, sourceTitle, quality string) {
+func (s *Store) appendHistory(ctx context.Context, itemID, eventType, sourceTitle, quality string) {
 	if s == nil || s.db == nil || strings.TrimSpace(itemID) == "" {
 		return
 	}
-	_, _ = s.db.Exec(`INSERT INTO history (item_id, event_type, source_title, quality, date) VALUES (?, ?, ?, ?, ?)`,
+	_, _ = s.db.ExecContext(ctx, `INSERT INTO history (item_id, event_type, source_title, quality, date) VALUES (?, ?, ?, ?, ?)`,
 		itemID, eventType, sourceTitle, quality, nowRFC3339())
 }
 
-func (s *Store) scanHistory(page, pageSize int, itemID, eventType string) ([]map[string]string, int, error) {
+func (s *Store) scanHistory(ctx context.Context, page, pageSize int, itemID, eventType string) ([]map[string]string, int, error) {
 	if page < 1 {
 		page = 1
 	}
@@ -47,11 +48,11 @@ func (s *Store) scanHistory(page, pageSize int, itemID, eventType string) ([]map
 		clause = " WHERE " + strings.Join(where, " AND ")
 	}
 	var total int
-	if err := s.db.QueryRow(`SELECT COUNT(*) `+base+clause, args...).Scan(&total); err != nil {
+	if err := s.db.QueryRowContext(ctx, `SELECT COUNT(*) `+base+clause, args...).Scan(&total); err != nil {
 		return nil, 0, err
 	}
 	offset := (page - 1) * pageSize
-	rows, err := s.db.Query(`SELECT item_id, event_type, source_title, quality, date `+base+clause+
+	rows, err := s.db.QueryContext(ctx, `SELECT item_id, event_type, source_title, quality, date `+base+clause+
 		` ORDER BY date DESC LIMIT ? OFFSET ?`, append(append([]any{}, args...), pageSize, offset)...)
 	if err != nil {
 		return nil, 0, err

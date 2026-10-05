@@ -169,7 +169,7 @@ func TestGRPCRemoveAuthorDeleteFiles(t *testing.T) {
 	cli := abv1.NewAudiobookManagementServiceClient(conn)
 	ctx := context.Background()
 
-	if _, err := m.ScanLibrary(); err != nil {
+	if _, err := m.ScanLibrary(context.Background()); err != nil {
 		t.Fatal(err)
 	}
 	listAu, err := cli.ListAuthors(ctx, &abv1.ListAuthorsRequest{Query: "Del Author"})

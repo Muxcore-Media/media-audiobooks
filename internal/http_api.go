@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -27,11 +28,12 @@ func (m *Module) registerAudiobooksHTTPAPI(mux *http.ServeMux) {
 }
 
 func (m *Module) handleListAuthorsHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if m.store == nil {
 		http.Error(w, `{"error":"store not open"}`, http.StatusServiceUnavailable)
 		return
 	}
-	items, err := m.store.ListAuthors(r.URL.Query().Get("q"))
+	items, err := m.store.ListAuthors(ctx, r.URL.Query().Get("q"))
 	if err != nil {
 		http.Error(w, fmtJSONError(err), http.StatusInternalServerError)
 		return
@@ -44,13 +46,14 @@ func (m *Module) handleListAuthorsHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Module) handleAddAuthorHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if m.store == nil {
 		http.Error(w, `{"error":"store not open"}`, http.StatusServiceUnavailable)
 		return
 	}
 	var body struct {
-		Name      string `json:"name"`
 		Monitored *bool  `json:"monitored"`
+		Name      string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
@@ -65,7 +68,7 @@ func (m *Module) handleAddAuthorHTTP(w http.ResponseWriter, r *http.Request) {
 	if body.Monitored != nil {
 		monitored = *body.Monitored
 	}
-	a, err := m.store.AddAuthor(Author{Name: name, Monitored: monitored})
+	a, err := m.store.AddAuthor(ctx, Author{Name: name, Monitored: monitored})
 	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "required") {
@@ -78,16 +81,17 @@ func (m *Module) handleAddAuthorHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Module) handleAddAudiobookHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	authorID := strings.TrimSpace(r.PathValue("id"))
 	if authorID == "" || m.store == nil {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
 		return
 	}
 	var body struct {
+		Monitored *bool  `json:"monitored"`
 		Title     string `json:"title"`
 		Narrator  string `json:"narrator"`
 		Year      int32  `json:"year"`
-		Monitored *bool  `json:"monitored"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, `{"error":"invalid json body"}`, http.StatusBadRequest)
@@ -102,7 +106,7 @@ func (m *Module) handleAddAudiobookHTTP(w http.ResponseWriter, r *http.Request) 
 	if body.Monitored != nil {
 		monitored = *body.Monitored
 	}
-	ab, err := m.store.AddAudiobook(Audiobook{
+	ab, err := m.store.AddAudiobook(ctx, Audiobook{
 		AuthorID: authorID, Title: title, Narrator: strings.TrimSpace(body.Narrator),
 		Year: body.Year, Monitored: monitored,
 	})
@@ -116,10 +120,11 @@ func (m *Module) handleAddAudiobookHTTP(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, fmtJSONError(err), status)
 		return
 	}
-	writeJSON(w, m.audiobookJSONWithFiles(ab))
+	writeJSON(w, m.audiobookJSONWithFiles(ctx, ab))
 }
 
 func (m *Module) handleGetAuthorHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := r.PathValue("id")
 	if id == "" {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
@@ -129,7 +134,7 @@ func (m *Module) handleGetAuthorHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error":"store not open"}`, http.StatusServiceUnavailable)
 		return
 	}
-	a, err := m.store.GetAuthor(id)
+	a, err := m.store.GetAuthor(ctx, id)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "not found") {
@@ -138,36 +143,38 @@ func (m *Module) handleGetAuthorHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, fmtJSONError(err), status)
 		return
 	}
-	books, err := m.store.ListAudiobooks(id)
+	books, err := m.store.ListAudiobooks(ctx, id)
 	if err != nil {
 		http.Error(w, fmtJSONError(err), http.StatusInternalServerError)
 		return
 	}
 	detail := authorDetailJSON{Author: toAuthorJSON(a), Audiobooks: make([]audiobookJSON, 0, len(books))}
 	for _, b := range books {
-		detail.Audiobooks = append(detail.Audiobooks, m.audiobookJSONWithFiles(b))
+		detail.Audiobooks = append(detail.Audiobooks, m.audiobookJSONWithFiles(ctx, b))
 	}
 	writeJSON(w, detail)
 }
 
 func (m *Module) handleListAudiobooksHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if m.store == nil {
 		http.Error(w, `{"error":"store not open"}`, http.StatusServiceUnavailable)
 		return
 	}
-	items, err := m.store.ListAudiobooks(r.URL.Query().Get("author_id"))
+	items, err := m.store.ListAudiobooks(ctx, r.URL.Query().Get("author_id"))
 	if err != nil {
 		http.Error(w, fmtJSONError(err), http.StatusInternalServerError)
 		return
 	}
 	out := make([]audiobookJSON, 0, len(items))
 	for _, b := range items {
-		out = append(out, m.audiobookJSONWithFiles(b))
+		out = append(out, m.audiobookJSONWithFiles(ctx, b))
 	}
 	writeJSON(w, out)
 }
 
 func (m *Module) handleGetAudiobookHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := r.PathValue("id")
 	if id == "" {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
@@ -177,7 +184,7 @@ func (m *Module) handleGetAudiobookHTTP(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, `{"error":"store not open"}`, http.StatusServiceUnavailable)
 		return
 	}
-	ab, err := m.store.GetAudiobook(id)
+	ab, err := m.store.GetAudiobook(ctx, id)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "not found") {
@@ -186,18 +193,19 @@ func (m *Module) handleGetAudiobookHTTP(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, fmtJSONError(err), status)
 		return
 	}
-	au, err := m.store.GetAuthor(ab.AuthorID)
+	au, err := m.store.GetAuthor(ctx, ab.AuthorID)
 	if err != nil {
 		http.Error(w, fmtJSONError(err), http.StatusInternalServerError)
 		return
 	}
 	writeJSON(w, audiobookDetailJSON{
 		Author:    toAuthorJSON(au),
-		Audiobook: m.audiobookJSONWithFiles(ab),
+		Audiobook: m.audiobookJSONWithFiles(ctx, ab),
 	})
 }
 
 func (m *Module) handlePatchAuthorHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := r.PathValue("id")
 	if id == "" || m.store == nil {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
@@ -220,7 +228,7 @@ func (m *Module) handlePatchAuthorHTTP(w http.ResponseWriter, r *http.Request) {
 		trimmed := strings.TrimSpace(*body.Path)
 		path = &trimmed
 	}
-	a, err := m.store.UpdateAuthor(id, nil, path, body.Monitored)
+	a, err := m.store.UpdateAuthor(ctx, id, nil, path, body.Monitored)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "not found") {
@@ -233,6 +241,7 @@ func (m *Module) handlePatchAuthorHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Module) handlePatchAudiobookHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := r.PathValue("id")
 	if id == "" || m.store == nil {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
@@ -242,7 +251,7 @@ func (m *Module) handlePatchAudiobookHTTP(w http.ResponseWriter, r *http.Request
 	if !ok {
 		return
 	}
-	ab, err := m.store.UpdateAudiobook(id, nil, nil, nil, nil, &mon)
+	ab, err := m.store.UpdateAudiobook(ctx, id, nil, nil, nil, nil, &mon)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "not found") {
@@ -251,17 +260,18 @@ func (m *Module) handlePatchAudiobookHTTP(w http.ResponseWriter, r *http.Request
 		http.Error(w, fmtJSONError(err), status)
 		return
 	}
-	writeJSON(w, m.audiobookJSONWithFiles(ab))
+	writeJSON(w, m.audiobookJSONWithFiles(ctx, ab))
 }
 
 func (m *Module) handleDeleteAudiobookHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := r.PathValue("id")
 	if id == "" || m.store == nil {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
 		return
 	}
 	deleteFiles := queryDeleteFiles(r)
-	if err := m.removeAudiobook(id, deleteFiles); err != nil {
+	if err := m.removeAudiobook(ctx, id, deleteFiles); err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "not found") {
 			status = http.StatusNotFound
@@ -273,6 +283,7 @@ func (m *Module) handleDeleteAudiobookHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (m *Module) handleImportAudiobookHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := r.PathValue("id")
 	if id == "" {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
@@ -295,7 +306,7 @@ func (m *Module) handleImportAudiobookHTTP(w http.ResponseWriter, r *http.Reques
 		http.Error(w, fmtJSONError(err), http.StatusBadRequest)
 		return
 	}
-	f, err := m.store.ImportAudiobookFile(id, abs, "")
+	f, err := m.store.ImportAudiobookFile(ctx, id, abs, "")
 	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "not found") {
@@ -308,11 +319,12 @@ func (m *Module) handleImportAudiobookHTTP(w http.ResponseWriter, r *http.Reques
 }
 
 func (m *Module) handleScanHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if m.store == nil {
 		http.Error(w, `{"error":"store not open"}`, http.StatusServiceUnavailable)
 		return
 	}
-	res, err := m.ScanLibrary()
+	res, err := m.ScanLibrary(ctx)
 	if err != nil {
 		http.Error(w, fmtJSONError(err), http.StatusInternalServerError)
 		return
@@ -324,6 +336,7 @@ func (m *Module) handleScanHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Module) handleListMissingHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	if m.store == nil {
 		http.Error(w, `{"error":"store not open"}`, http.StatusServiceUnavailable)
 		return
@@ -336,7 +349,7 @@ func (m *Module) handleListMissingHTTP(w http.ResponseWriter, r *http.Request) {
 	if pageSize <= 0 {
 		pageSize = 100
 	}
-	items, total, err := m.store.ListMissingAudiobooks(page, pageSize)
+	items, total, err := m.store.ListMissingAudiobooks(ctx, page, pageSize)
 	if err != nil {
 		http.Error(w, fmtJSONError(err), http.StatusInternalServerError)
 		return
@@ -351,12 +364,13 @@ func (m *Module) handleListMissingHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (m *Module) handleStreamAudiobookFileHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := r.PathValue("id")
 	if id == "" || m.store == nil {
 		http.NotFound(w, r)
 		return
 	}
-	f, err := m.store.GetAudiobookFile(id)
+	f, err := m.store.GetAudiobookFile(ctx, id)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -370,12 +384,12 @@ func (m *Module) handleStreamAudiobookFileHTTP(w http.ResponseWriter, r *http.Re
 	http.ServeFile(w, r, abs)
 }
 
-func (m *Module) audiobookJSONWithFiles(b *Audiobook) audiobookJSON {
+func (m *Module) audiobookJSONWithFiles(ctx context.Context, b *Audiobook) audiobookJSON {
 	out := toAudiobookJSON(b)
 	if m.store == nil {
 		return out
 	}
-	files, err := m.store.ListAudiobookFiles(b.ID)
+	files, err := m.store.ListAudiobookFiles(ctx, b.ID)
 	if err != nil {
 		return out
 	}

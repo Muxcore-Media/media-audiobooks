@@ -1,6 +1,7 @@
 package internal
 
 import (
+	"context"
 	"fmt"
 	"io/fs"
 	"os"
@@ -32,7 +33,7 @@ type ScanResult struct {
 // ScanLibraryRoot walks root for audio files and upserts authors/audiobooks/files.
 // Layout expected: Author/Title/file.ext (Author/file.ext → title from filename).
 // Metadata is derived only from path/filename — no network lookups.
-func (s *Store) ScanLibraryRoot(root string) (*ScanResult, error) {
+func (s *Store) ScanLibraryRoot(ctx context.Context, root string) (*ScanResult, error) {
 	root, err := filepath.Abs(filepath.Clean(root))
 	if err != nil {
 		return nil, fmt.Errorf("library root: %w", err)
@@ -46,7 +47,7 @@ func (s *Store) ScanLibraryRoot(root string) (*ScanResult, error) {
 	}
 
 	res := &ScanResult{}
-	removed, err := s.purgeVanishedFiles()
+	removed, err := s.purgeVanishedFiles(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -64,15 +65,15 @@ func (s *Store) ScanLibraryRoot(root string) (*ScanResult, error) {
 			return nil
 		}
 		res.FilesFound++
-		abs, err := filepath.Abs(path)
-		if err != nil {
+		abs, absErr := filepath.Abs(path)
+		if absErr != nil {
 			res.FilesSkipped++
-			return nil
+			return nil //nolint:nilerr // an unresolvable path is counted as skipped, not a fatal scan error
 		}
 		authorName, bookTitle, fileTitle := inferFromPath(root, abs)
-		imported, err := s.importAudioFile(authorName, bookTitle, fileTitle, abs)
-		if err != nil {
-			return err
+		imported, impErr := s.importAudioFile(ctx, authorName, bookTitle, fileTitle, abs)
+		if impErr != nil {
+			return impErr
 		}
 		if imported {
 			res.FilesImported++
@@ -87,18 +88,18 @@ func (s *Store) ScanLibraryRoot(root string) (*ScanResult, error) {
 	return res, nil
 }
 
-func (s *Store) importAudioFile(authorName, bookTitle, fileTitle, absPath string) (imported bool, err error) {
-	existing, err := s.findAudiobookFileByPath(absPath)
+func (s *Store) importAudioFile(ctx context.Context, authorName, bookTitle, fileTitle, absPath string) (imported bool, err error) {
+	existing, err := s.findAudiobookFileByPath(ctx, absPath)
 	if err != nil {
 		return false, err
 	}
 
-	au, err := s.findAuthorByName(authorName)
+	au, err := s.findAuthorByName(ctx, authorName)
 	if err != nil {
 		return false, err
 	}
 	if au == nil {
-		au, err = s.AddAuthor(Author{
+		au, err = s.AddAuthor(ctx, Author{
 			Name:      authorName,
 			Monitored: true,
 			Path:      filepath.Dir(filepath.Dir(absPath)),
@@ -108,12 +109,12 @@ func (s *Store) importAudioFile(authorName, bookTitle, fileTitle, absPath string
 		}
 	}
 
-	ab, err := s.findAudiobook(au.ID, bookTitle)
+	ab, err := s.findAudiobook(ctx, au.ID, bookTitle)
 	if err != nil {
 		return false, err
 	}
 	if ab == nil {
-		ab, err = s.AddAudiobook(Audiobook{
+		ab, err = s.AddAudiobook(ctx, Audiobook{
 			AuthorID:  au.ID,
 			Title:     bookTitle,
 			Monitored: true,
@@ -123,7 +124,7 @@ func (s *Store) importAudioFile(authorName, bookTitle, fileTitle, absPath string
 		}
 	}
 
-	_, err = s.upsertAudiobookFile(AudiobookFile{
+	_, err = s.upsertAudiobookFile(ctx, AudiobookFile{
 		AudiobookID: ab.ID,
 		AuthorID:    au.ID,
 		Title:       fileTitle,

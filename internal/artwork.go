@@ -50,6 +50,9 @@ func (m *Module) writeArtworkBytes(itemID, filename, contentType string, data []
 	if itemID == "" {
 		return "", "", fmt.Errorf("item id required")
 	}
+	if itemID == "." || itemID == ".." || itemID != filepath.Base(itemID) || strings.ContainsAny(itemID, `/\`) {
+		return "", "", fmt.Errorf("invalid item id")
+	}
 	if len(data) == 0 {
 		return "", "", fmt.Errorf("empty artwork data")
 	}
@@ -58,12 +61,12 @@ func (m *Module) writeArtworkBytes(itemID, filename, contentType string, data []
 	}
 	ext := extFromFilenameOrMIME(filename, contentType)
 	dir := filepath.Join(m.getImageDir(), itemID)
-	if err := os.MkdirAll(dir, 0o700); err != nil {
+	if err := os.MkdirAll(dir, 0o700); err != nil { //nolint:gosec // dir is under the image root; itemID validated above
 		return "", "", fmt.Errorf("create artwork dir: %w", err)
 	}
 	relPath = filepath.ToSlash(filepath.Join(itemID, "poster"+ext))
 	abs := filepath.Join(m.getImageDir(), filepath.FromSlash(relPath))
-	if err := os.WriteFile(abs, data, 0o600); err != nil {
+	if err := os.WriteFile(abs, data, 0o600); err != nil { //nolint:gosec // abs is under the image root; itemID validated above
 		return "", "", fmt.Errorf("write artwork: %w", err)
 	}
 	mime = contentType
@@ -93,12 +96,13 @@ func decodeArtworkPayload(raw string) ([]byte, error) {
 }
 
 func (m *Module) handleListAudiobookArtworkHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" || m.store == nil {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
 		return
 	}
-	ab, err := m.store.GetAudiobook(id)
+	ab, err := m.store.GetAudiobook(ctx, id)
 	if err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "not found") {
@@ -117,12 +121,13 @@ func (m *Module) handleListAudiobookArtworkHTTP(w http.ResponseWriter, r *http.R
 }
 
 func (m *Module) handleListAudiobookHistoryHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" || m.store == nil {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
 		return
 	}
-	if _, err := m.store.GetAudiobook(id); err != nil {
+	if _, err := m.store.GetAudiobook(ctx, id); err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "not found") {
 			status = http.StatusNotFound
@@ -130,7 +135,7 @@ func (m *Module) handleListAudiobookHistoryHTTP(w http.ResponseWriter, r *http.R
 		http.Error(w, fmtJSONError(err), status)
 		return
 	}
-	rows, total, err := m.store.scanHistory(1, 50, id, strings.TrimSpace(r.URL.Query().Get("event")))
+	rows, total, err := m.store.scanHistory(ctx, 1, 50, id, strings.TrimSpace(r.URL.Query().Get("event")))
 	if err != nil {
 		http.Error(w, fmtJSONError(err), http.StatusInternalServerError)
 		return
@@ -147,12 +152,13 @@ func (m *Module) handleListAudiobookHistoryHTTP(w http.ResponseWriter, r *http.R
 }
 
 func (m *Module) handleReplaceAudiobookArtworkHTTP(w http.ResponseWriter, r *http.Request) {
+	ctx := r.Context()
 	id := strings.TrimSpace(r.PathValue("id"))
 	if id == "" || m.store == nil {
 		http.Error(w, `{"error":"id required"}`, http.StatusBadRequest)
 		return
 	}
-	if _, err := m.store.GetAudiobook(id); err != nil {
+	if _, err := m.store.GetAudiobook(ctx, id); err != nil {
 		status := http.StatusInternalServerError
 		if strings.Contains(err.Error(), "not found") {
 			status = http.StatusNotFound
@@ -183,7 +189,7 @@ func (m *Module) handleReplaceAudiobookArtworkHTTP(w http.ResponseWriter, r *htt
 		http.Error(w, fmtJSONError(err), http.StatusBadRequest)
 		return
 	}
-	if _, err := m.store.SetAudiobookPosterURL(id, rel); err != nil {
+	if _, err := m.store.SetAudiobookPosterURL(ctx, id, rel); err != nil {
 		http.Error(w, fmtJSONError(err), http.StatusInternalServerError)
 		return
 	}

@@ -1,6 +1,7 @@
 package internal_test
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -19,7 +20,7 @@ func TestScanLibraryRootFixtures(t *testing.T) {
 	}
 
 	s, _ := openTempStore(t)
-	res, err := s.ScanLibraryRoot(root)
+	res, err := s.ScanLibraryRoot(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -31,7 +32,7 @@ func TestScanLibraryRootFixtures(t *testing.T) {
 		t.Fatalf("expected imports, got %+v", res)
 	}
 
-	authors, err := s.ListAuthors("")
+	authors, err := s.ListAuthors(context.Background(), "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -48,14 +49,14 @@ func TestScanLibraryRootFixtures(t *testing.T) {
 	if fixtureAuthor == nil {
 		t.Fatalf("Fixture Author not found: %+v", authors)
 	}
-	books, err := s.ListAudiobooks(fixtureAuthor.ID)
+	books, err := s.ListAudiobooks(context.Background(), fixtureAuthor.ID)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if len(books) < 1 {
 		t.Fatal("expected audiobook from fixtures")
 	}
-	files, err := s.ListAudiobookFiles(books[0].ID)
+	files, err := s.ListAudiobookFiles(context.Background(), books[0].ID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,7 +65,7 @@ func TestScanLibraryRootFixtures(t *testing.T) {
 	}
 
 	// Idempotent rescan should skip already-imported paths.
-	res2, err := s.ScanLibraryRoot(root)
+	res2, err := s.ScanLibraryRoot(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -78,7 +79,7 @@ func TestScanLibraryRootFixtures(t *testing.T) {
 
 func TestScanLibraryRootMissing(t *testing.T) {
 	s, _ := openTempStore(t)
-	_, err := s.ScanLibraryRoot(filepath.Join(t.TempDir(), "does-not-exist"))
+	_, err := s.ScanLibraryRoot(context.Background(), filepath.Join(t.TempDir(), "does-not-exist"))
 	if err == nil {
 		t.Fatal("expected error for missing root")
 	}
@@ -103,7 +104,7 @@ func TestModuleInitScan(t *testing.T) {
 	}
 	t.Cleanup(func() { _ = m.Stop(t.Context()) })
 
-	res, err := m.ScanLibrary()
+	res, err := m.ScanLibrary(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -155,20 +156,20 @@ func TestScanLibraryRootPurgesVanishedFiles(t *testing.T) {
 	if err := os.WriteFile(stub, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := s.ScanLibraryRoot(root); err != nil {
+	if _, err := s.ScanLibraryRoot(context.Background(), root); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.Remove(stub); err != nil {
 		t.Fatal(err)
 	}
-	res, err := s.ScanLibraryRoot(root)
+	res, err := s.ScanLibraryRoot(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if res.FilesRemoved != 1 {
 		t.Fatalf("expected vanished file purge, got %+v", res)
 	}
-	items, total, err := s.ListMissingAudiobooks(1, 50)
+	items, total, err := s.ListMissingAudiobooks(context.Background(), 1, 50)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +191,7 @@ func TestScanConfiguredLibrary(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = m.Stop(t.Context()) })
-	res, err := m.ScanLibrary()
+	res, err := m.ScanLibrary(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

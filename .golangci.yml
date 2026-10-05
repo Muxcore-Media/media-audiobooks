@@ -81,6 +81,12 @@ linters:
       - path: '.*_test\.go'
         linters:
           - gosec
+      # JSON wire structs: field order is part of the emitted payload layout,
+      # so they are intentionally not reordered for govet fieldalignment.
+      - linters:
+          - govet
+        text: 'fieldalignment'
+        source: 'type (authorJSON|audiobookJSON) struct'
       - linters:
           - noctx
         source: '//nolint'

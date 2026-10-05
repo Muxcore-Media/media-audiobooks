@@ -2,6 +2,7 @@ package internal_test
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"io"
 	"net/http"
@@ -285,19 +286,19 @@ func TestHTTPStreamPathEscape404(t *testing.T) {
 	if err := m.Init(t.Context()); err != nil {
 		t.Fatal(err)
 	}
-	s, err := internal.OpenStore(filepath.Join(data, "audiobooks.db"))
+	s, err := internal.OpenStore(context.Background(), filepath.Join(data, "audiobooks.db"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	au, err := s.AddAuthor(internal.Author{Name: "Esc", Monitored: true})
+	au, err := s.AddAuthor(context.Background(), internal.Author{Name: "Esc", Monitored: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	ab, err := s.AddAudiobook(internal.Audiobook{AuthorID: au.ID, Title: "Book", Monitored: true})
+	ab, err := s.AddAudiobook(context.Background(), internal.Audiobook{AuthorID: au.ID, Title: "Book", Monitored: true})
 	if err != nil {
 		t.Fatal(err)
 	}
-	f, err := s.ImportAudiobookFile(ab.ID, outside, "outside")
+	f, err := s.ImportAudiobookFile(context.Background(), ab.ID, outside, "outside")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -398,7 +399,7 @@ func TestNewModuleDefaultLibraryDir(t *testing.T) {
 	if err := os.WriteFile(root, nil, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	res, err := m.ScanLibrary()
+	res, err := m.ScanLibrary(context.Background())
 	if err != nil {
 		t.Fatal(err)
 	}

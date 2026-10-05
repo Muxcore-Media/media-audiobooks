@@ -4,11 +4,13 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"math"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
 	"sync"
+	"time"
 
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -19,7 +21,23 @@ import (
 	abv1 "github.com/Muxcore-Media/media-audiobooks/proto/gen/muxcore/audiobooks/v1"
 )
 
+// clampInt32 converts n to int32, saturating at the int32 bounds.
+func clampInt32(n int) int32 {
+	if n > math.MaxInt32 {
+		return math.MaxInt32
+	}
+	if n < math.MinInt32 {
+		return math.MinInt32
+	}
+	return int32(n) //nolint:gosec // bounds checked above
+}
+
 type Module struct {
+	lis     net.Listener
+	store   *Store
+	grpcSrv *grpc.Server
+	httpSrv *http.Server
+
 	id         string
 	grpcAddr   string
 	httpAddr   string
@@ -28,11 +46,6 @@ type Module struct {
 	imageDir   string
 
 	cfgMu sync.RWMutex
-	store *Store
-
-	grpcSrv *grpc.Server
-	lis     net.Listener
-	httpSrv *http.Server
 }
 
 type Config struct {
@@ -96,7 +109,7 @@ func (m *Module) Init(ctx context.Context) error {
 		return fmt.Errorf("create library dir: %w", err)
 	}
 	dbPath := filepath.Join(m.dataDir, "audiobooks.db")
-	store, err := OpenStore(dbPath)
+	store, err := OpenStore(ctx, dbPath)
 	if err != nil {
 		return err
 	}
@@ -109,7 +122,8 @@ func (m *Module) Start(ctx context.Context) error {
 	if m.store == nil {
 		return fmt.Errorf("store not initialized")
 	}
-	lis, err := net.Listen("tcp", m.grpcAddr)
+	lc := &net.ListenConfig{}
+	lis, err := lc.Listen(ctx, "tcp", m.grpcAddr)
 	if err != nil {
 		return fmt.Errorf("listen gRPC %s: %w", m.grpcAddr, err)
 	}
@@ -120,8 +134,8 @@ func (m *Module) Start(ctx context.Context) error {
 	modulesdk.RegisterSettings(m.grpcSrv, m.id, m)
 	go func() {
 		slog.Info("audiobooks gRPC listening", "addr", m.grpcAddr)
-		if err := m.grpcSrv.Serve(lis); err != nil {
-			slog.Error("gRPC serve", "error", err)
+		if serveErr := m.grpcSrv.Serve(lis); serveErr != nil {
+			slog.Error("gRPC serve", "error", serveErr)
 		}
 	}()
 	mux := http.NewServeMux()
@@ -133,19 +147,19 @@ func (m *Module) Start(ctx context.Context) error {
 	mux.HandleFunc("/images/", func(w http.ResponseWriter, r *http.Request) {
 		http.StripPrefix("/images/", http.FileServer(http.Dir(m.getImageDir()))).ServeHTTP(w, r)
 	})
-	httpLis, err := net.Listen("tcp", m.httpAddr)
+	httpLis, err := lc.Listen(ctx, "tcp", m.httpAddr)
 	if err != nil {
 		return fmt.Errorf("listen HTTP %s: %w", m.httpAddr, err)
 	}
 	m.httpAddr = httpLis.Addr().String()
-	m.httpSrv = &http.Server{Handler: mux}
+	m.httpSrv = &http.Server{Handler: mux, ReadHeaderTimeout: 10 * time.Second}
 	go func() {
 		slog.Info("health listening", "addr", m.httpAddr)
 		if err := m.httpSrv.Serve(httpLis); err != nil && err != http.ErrServerClosed {
 			slog.Error("health serve", "error", err)
 		}
 	}()
-	if _, err := m.ScanLibrary(); err != nil {
+	if _, err := m.ScanLibrary(ctx); err != nil {
 		return fmt.Errorf("startup library scan: %w", err)
 	}
 	return nil
@@ -184,11 +198,11 @@ func (m *Module) Health(ctx context.Context) error {
 	if m.store == nil {
 		return fmt.Errorf("store not open")
 	}
-	return m.store.Ping()
+	return m.store.Ping(ctx)
 }
 
 // ScanLibrary scans the configured library root into SQLite.
-func (m *Module) ScanLibrary() (*ScanResult, error) {
+func (m *Module) ScanLibrary(ctx context.Context) (*ScanResult, error) {
 	m.cfgMu.RLock()
 	root := m.libraryDir
 	store := m.store
@@ -196,7 +210,7 @@ func (m *Module) ScanLibrary() (*ScanResult, error) {
 	if store == nil {
 		return nil, fmt.Errorf("store not open")
 	}
-	return store.ScanLibraryRoot(root)
+	return store.ScanLibraryRoot(ctx, root)
 }
 
 func (m *Module) deleteFilesUnderLibrary(files []*AudiobookFile) error {
@@ -218,24 +232,24 @@ type abServer struct {
 	m *Module
 }
 
-func (s *abServer) AddAuthor(_ context.Context, req *abv1.AddAuthorRequest) (*abv1.AddAuthorResponse, error) {
-	a, err := s.m.store.AddAuthor(Author{Name: req.GetName(), Monitored: req.GetMonitored(), Path: req.GetPath()})
+func (s *abServer) AddAuthor(ctx context.Context, req *abv1.AddAuthorRequest) (*abv1.AddAuthorResponse, error) {
+	a, err := s.m.store.AddAuthor(ctx, Author{Name: req.GetName(), Monitored: req.GetMonitored(), Path: req.GetPath()})
 	if err != nil {
 		return nil, err
 	}
 	return &abv1.AddAuthorResponse{Author: toPBAuthor(a)}, nil
 }
 
-func (s *abServer) GetAuthor(_ context.Context, req *abv1.GetAuthorRequest) (*abv1.GetAuthorResponse, error) {
-	a, err := s.m.store.GetAuthor(req.GetId())
+func (s *abServer) GetAuthor(ctx context.Context, req *abv1.GetAuthorRequest) (*abv1.GetAuthorResponse, error) {
+	a, err := s.m.store.GetAuthor(ctx, req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
 	return &abv1.GetAuthorResponse{Author: toPBAuthor(a)}, nil
 }
 
-func (s *abServer) ListAuthors(_ context.Context, req *abv1.ListAuthorsRequest) (*abv1.ListAuthorsResponse, error) {
-	items, err := s.m.store.ListAuthors(req.GetQuery())
+func (s *abServer) ListAuthors(ctx context.Context, req *abv1.ListAuthorsRequest) (*abv1.ListAuthorsResponse, error) {
+	items, err := s.m.store.ListAuthors(ctx, req.GetQuery())
 	if err != nil {
 		return nil, err
 	}
@@ -246,7 +260,7 @@ func (s *abServer) ListAuthors(_ context.Context, req *abv1.ListAuthorsRequest) 
 	return &abv1.ListAuthorsResponse{Authors: out}, nil
 }
 
-func (s *abServer) UpdateAuthor(_ context.Context, req *abv1.UpdateAuthorRequest) (*abv1.UpdateAuthorResponse, error) {
+func (s *abServer) UpdateAuthor(ctx context.Context, req *abv1.UpdateAuthorRequest) (*abv1.UpdateAuthorResponse, error) {
 	var name, path *string
 	var monitored *bool
 	if req.Name != nil {
@@ -258,16 +272,16 @@ func (s *abServer) UpdateAuthor(_ context.Context, req *abv1.UpdateAuthorRequest
 	if req.Monitored != nil {
 		monitored = req.Monitored
 	}
-	a, err := s.m.store.UpdateAuthor(req.GetId(), name, path, monitored)
+	a, err := s.m.store.UpdateAuthor(ctx, req.GetId(), name, path, monitored)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
 	return &abv1.UpdateAuthorResponse{Author: toPBAuthor(a)}, nil
 }
 
-func (s *abServer) RemoveAuthor(_ context.Context, req *abv1.RemoveAuthorRequest) (*abv1.RemoveAuthorResponse, error) {
+func (s *abServer) RemoveAuthor(ctx context.Context, req *abv1.RemoveAuthorRequest) (*abv1.RemoveAuthorResponse, error) {
 	if req.GetDeleteFiles() {
-		files, err := s.m.store.ListAudiobookFilesByAuthor(req.GetId())
+		files, err := s.m.store.ListAudiobookFilesByAuthor(ctx, req.GetId())
 		if err != nil {
 			return nil, err
 		}
@@ -275,14 +289,14 @@ func (s *abServer) RemoveAuthor(_ context.Context, req *abv1.RemoveAuthorRequest
 			return nil, err
 		}
 	}
-	if err := s.m.store.RemoveAuthor(req.GetId()); err != nil {
+	if err := s.m.store.RemoveAuthor(ctx, req.GetId()); err != nil {
 		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
 	return &abv1.RemoveAuthorResponse{Success: true}, nil
 }
 
-func (s *abServer) AddAudiobook(_ context.Context, req *abv1.AddAudiobookRequest) (*abv1.AddAudiobookResponse, error) {
-	ab, err := s.m.store.AddAudiobook(Audiobook{
+func (s *abServer) AddAudiobook(ctx context.Context, req *abv1.AddAudiobookRequest) (*abv1.AddAudiobookResponse, error) {
+	ab, err := s.m.store.AddAudiobook(ctx, Audiobook{
 		AuthorID: req.GetAuthorId(), Title: req.GetTitle(), Narrator: req.GetNarrator(),
 		ASIN: req.GetAsin(), Year: req.GetYear(), DurationSeconds: req.GetDurationSeconds(),
 		Monitored: req.GetMonitored(),
@@ -293,32 +307,32 @@ func (s *abServer) AddAudiobook(_ context.Context, req *abv1.AddAudiobookRequest
 	return &abv1.AddAudiobookResponse{Audiobook: toPBAudiobook(ab, nil)}, nil
 }
 
-func (s *abServer) GetAudiobook(_ context.Context, req *abv1.GetAudiobookRequest) (*abv1.GetAudiobookResponse, error) {
-	ab, err := s.m.store.GetAudiobook(req.GetId())
+func (s *abServer) GetAudiobook(ctx context.Context, req *abv1.GetAudiobookRequest) (*abv1.GetAudiobookResponse, error) {
+	ab, err := s.m.store.GetAudiobook(ctx, req.GetId())
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
-	files, err := s.m.store.ListAudiobookFiles(ab.ID)
+	files, err := s.m.store.ListAudiobookFiles(ctx, ab.ID)
 	if err != nil {
 		return nil, err
 	}
 	return &abv1.GetAudiobookResponse{Audiobook: toPBAudiobook(ab, files)}, nil
 }
 
-func (s *abServer) ListAudiobooks(_ context.Context, req *abv1.ListAudiobooksRequest) (*abv1.ListAudiobooksResponse, error) {
-	items, err := s.m.store.ListAudiobooks(req.GetAuthorId())
+func (s *abServer) ListAudiobooks(ctx context.Context, req *abv1.ListAudiobooksRequest) (*abv1.ListAudiobooksResponse, error) {
+	items, err := s.m.store.ListAudiobooks(ctx, req.GetAuthorId())
 	if err != nil {
 		return nil, err
 	}
 	out := make([]*abv1.Audiobook, 0, len(items))
 	for _, ab := range items {
-		files, _ := s.m.store.ListAudiobookFiles(ab.ID)
+		files, _ := s.m.store.ListAudiobookFiles(ctx, ab.ID)
 		out = append(out, toPBAudiobook(ab, files))
 	}
 	return &abv1.ListAudiobooksResponse{Audiobooks: out}, nil
 }
 
-func (s *abServer) UpdateAudiobook(_ context.Context, req *abv1.UpdateAudiobookRequest) (*abv1.UpdateAudiobookResponse, error) {
+func (s *abServer) UpdateAudiobook(ctx context.Context, req *abv1.UpdateAudiobookRequest) (*abv1.UpdateAudiobookResponse, error) {
 	var title, narrator, asin *string
 	var year *int32
 	var monitored *bool
@@ -337,17 +351,17 @@ func (s *abServer) UpdateAudiobook(_ context.Context, req *abv1.UpdateAudiobookR
 	if req.Monitored != nil {
 		monitored = req.Monitored
 	}
-	ab, err := s.m.store.UpdateAudiobook(req.GetId(), title, narrator, asin, year, monitored)
+	ab, err := s.m.store.UpdateAudiobook(ctx, req.GetId(), title, narrator, asin, year, monitored)
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
-	files, _ := s.m.store.ListAudiobookFiles(ab.ID)
+	files, _ := s.m.store.ListAudiobookFiles(ctx, ab.ID)
 	return &abv1.UpdateAudiobookResponse{Audiobook: toPBAudiobook(ab, files)}, nil
 }
 
-func (m *Module) removeAudiobook(id string, deleteFiles bool) error {
+func (m *Module) removeAudiobook(ctx context.Context, id string, deleteFiles bool) error {
 	if deleteFiles {
-		files, err := m.store.ListAudiobookFiles(id)
+		files, err := m.store.ListAudiobookFiles(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -355,29 +369,29 @@ func (m *Module) removeAudiobook(id string, deleteFiles bool) error {
 			return err
 		}
 	}
-	return m.store.RemoveAudiobook(id)
+	return m.store.RemoveAudiobook(ctx, id)
 }
 
-func (s *abServer) RemoveAudiobook(_ context.Context, req *abv1.RemoveAudiobookRequest) (*abv1.RemoveAudiobookResponse, error) {
-	if err := s.m.removeAudiobook(req.GetId(), req.GetDeleteFiles()); err != nil {
+func (s *abServer) RemoveAudiobook(ctx context.Context, req *abv1.RemoveAudiobookRequest) (*abv1.RemoveAudiobookResponse, error) {
+	if err := s.m.removeAudiobook(ctx, req.GetId(), req.GetDeleteFiles()); err != nil {
 		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
 	return &abv1.RemoveAudiobookResponse{Success: true}, nil
 }
 
-func (s *abServer) ScanLibrary(_ context.Context, _ *abv1.ScanLibraryRequest) (*abv1.ScanLibraryResponse, error) {
-	res, err := s.m.ScanLibrary()
+func (s *abServer) ScanLibrary(ctx context.Context, _ *abv1.ScanLibraryRequest) (*abv1.ScanLibraryResponse, error) {
+	res, err := s.m.ScanLibrary(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return &abv1.ScanLibraryResponse{
-		FilesFound: int32(res.FilesFound), FilesImported: int32(res.FilesImported),
-		FilesSkipped: int32(res.FilesSkipped), FilesRemoved: int32(res.FilesRemoved),
+		FilesFound: clampInt32(res.FilesFound), FilesImported: clampInt32(res.FilesImported),
+		FilesSkipped: clampInt32(res.FilesSkipped), FilesRemoved: clampInt32(res.FilesRemoved),
 	}, nil
 }
 
-func (s *abServer) ListAudiobookFiles(_ context.Context, req *abv1.ListAudiobookFilesRequest) (*abv1.ListAudiobookFilesResponse, error) {
-	files, err := s.m.store.ListAudiobookFiles(req.GetAudiobookId())
+func (s *abServer) ListAudiobookFiles(ctx context.Context, req *abv1.ListAudiobookFilesRequest) (*abv1.ListAudiobookFilesResponse, error) {
+	files, err := s.m.store.ListAudiobookFiles(ctx, req.GetAudiobookId())
 	if err != nil {
 		return nil, err
 	}
@@ -388,10 +402,10 @@ func (s *abServer) ListAudiobookFiles(_ context.Context, req *abv1.ListAudiobook
 	return &abv1.ListAudiobookFilesResponse{Files: out}, nil
 }
 
-func (s *abServer) ListMissing(_ context.Context, req *abv1.ListMissingRequest) (*abv1.ListMissingResponse, error) {
+func (s *abServer) ListMissing(ctx context.Context, req *abv1.ListMissingRequest) (*abv1.ListMissingResponse, error) {
 	page := int(req.GetPage())
 	pageSize := int(req.GetPageSize())
-	items, total, err := s.m.store.ListMissingAudiobooks(page, pageSize)
+	items, total, err := s.m.store.ListMissingAudiobooks(ctx, page, pageSize)
 	if err != nil {
 		return nil, err
 	}
@@ -409,17 +423,17 @@ func (s *abServer) ListMissing(_ context.Context, req *abv1.ListMissingRequest) 
 		})
 	}
 	return &abv1.ListMissingResponse{
-		Items: out, Total: int32(total), Page: int32(page), PageSize: int32(pageSize),
+		Items: out, Total: clampInt32(total), Page: clampInt32(page), PageSize: clampInt32(pageSize),
 	}, nil
 }
 
-func (s *abServer) ImportAudiobookFile(_ context.Context, req *abv1.ImportAudiobookFileRequest) (*abv1.ImportAudiobookFileResponse, error) {
+func (s *abServer) ImportAudiobookFile(ctx context.Context, req *abv1.ImportAudiobookFileRequest) (*abv1.ImportAudiobookFileResponse, error) {
 	root := s.m.libraryRoot()
 	abs, err := pathUnderRoot(root, req.GetPath())
 	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "%v", err)
 	}
-	f, err := s.m.store.ImportAudiobookFile(req.GetAudiobookId(), abs, "")
+	f, err := s.m.store.ImportAudiobookFile(ctx, req.GetAudiobookId(), abs, "")
 	if err != nil {
 		return nil, status.Errorf(codes.NotFound, "%v", err)
 	}
